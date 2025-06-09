@@ -1,8 +1,8 @@
 --[[
     Script: Dragon Training Hub UI
     Created by: Nexus-Lua for Master
-    Function: Full-featured hub with automatic ad-blocking and new rebirth options.
-    Version: 7.3
+    Function: Full-featured hub with a re-engineered, reliable treadmill removal system.
+    Version: 7.3 (Final Stable)
 ]]
 
 -- Load the Rayfield User Interface Library
@@ -13,9 +13,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-local Stats = game:GetService("Stats")
-local StarterPlayer = game:GetService("StarterPlayer")
 
 -- Remote Events
 local TreadmillRemote = ReplicatedStorage.Remotes.Server.Treadmill
@@ -37,6 +34,7 @@ local HatchEnchantRemote = ReplicatedStorage.Remotes.Server.HatchEnchant
 
 local autoTrainEnabled, autoRebirthEnabled, autoHatchEnabled, autoUpgradeEnabled, autoGiftEnabled, autoSpinEnabled, autoPotionEnabled, autoBuyDragonEnabled, autoBuyTrailEnabled, autoHatchChestEnabled = false, false, false, false, false, false, false, false, false, false
 local notificationsEnabled = true
+local removeTreadmillsEnabled = false
 
 local playerRebirths = 0
 local selectedWorld = "Spawn World"
@@ -61,45 +59,12 @@ local Chests = {["Chest I (12m)"] = 1}
 local TrailNames = {"Red","Yellow","Green","Blue","Purple","Midnight","Cash Money","Heaven","Crystal","Electro","Pink Flame","Multi","Enchanted","Glitched","Elemental","Frozen","Flaming","Holiday","Cartoony","Lazer","Time","Bee","Ethereal","Plasma","Red Giant","Earth","Firework","Hacker","Ocean","Toxic"}
 
 -- Treadmill Removal System
-local TreadmillModels = {["Spawn World"]={},["Ocean World"]={}}; local GlobalTreadmillModels, hiddenTreadmills, worldsScanned = {}, {}, {}
+local TreadmillModels = {["Spawn World"]={},["Ocean World"]={}}; local GlobalTreadmillModels, hiddenTreadmills, worldsScanned, globalsScanned = {}, {}, {}, false
 local function FindModelsForSpecificWorld(worldName) if worldsScanned[worldName] then return end; pcall(function() if worldName=="Spawn World" then local s=Workspace:FindFirstChild("PersistentWorld"); if s then for _,c in ipairs(s:GetChildren()) do if c:IsA("Model") then table.insert(TreadmillModels["Spawn World"],c) end end end elseif worldName=="Ocean World" then local o=Workspace:FindFirstChild("WorldMap"); if o then for _,c in ipairs(o:GetChildren()) do if c:IsA("Model") then table.insert(TreadmillModels["Ocean World"],c) end end end end end); worldsScanned[worldName]=true; Notify({Title="Scanner",Content="Treadmills for "..worldName.." have been indexed.",Duration=3,Image="search"}) end
-local function FindInitialModels() pcall(function() local g={"TreadmillBase","TreadmillPrompts","VIPTreadmills"}; for _,n in ipairs(g) do local m=Workspace:FindFirstChild(n); if m then table.insert(GlobalTreadmillModels,m) end end; FindModelsForSpecificWorld("Spawn World") end) end
+local function FindGlobalModels() if globalsScanned then return end; pcall(function() local g={"TreadmillBase","TreadmillPrompts","VIPTreadmills"}; for _,n in ipairs(g) do local m=Workspace:FindFirstChild(n); if m then table.insert(GlobalTreadmillModels,m) end end end); globalsScanned = true end
 local function RestoreAllTreadmills() for _,d in ipairs(hiddenTreadmills) do if d.model and d.originalParent then pcall(function() d.model.Parent=d.originalParent end) end end; hiddenTreadmills={} end
-local function HideTreadmillsForWorld(worldName) FindModelsForSpecificWorld(worldName); local t=TreadmillModels[worldName]; if t then for _,m in ipairs(t) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end; for _,m in ipairs(GlobalTreadmillModels) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end
-
--- ==============================================================================
---                                AD BLOCKER
--- ==============================================================================
-local function BlockAds()
-    local function SafeDestroy(instance)
-        if instance then
-            pcall(function() instance:Destroy() end)
-        end
-    end
-
-    local function SafeNeutered(remote)
-        if remote then
-            remote.OnClientEvent = Instance.new("BindableEvent") -- Replace with dummy event
-        end
-    end
-    
-    -- Block GUI elements and scripts
-    pcall(function() SafeDestroy(CoreGui:WaitForChild("RobloxGui", 5):WaitForChild("Modules", 5):WaitForChild("Ad", 5)) end)
-    pcall(function() SafeDestroy(StarterPlayer.StarterPlayerScripts:WaitForChild("BloxbizSDK", 5)) end)
-    pcall(function() SafeDestroy(LocalPlayer.PlayerScripts:WaitForChild("BloxbizSDK", 5)) end)
-    pcall(function() SafeDestroy(LocalPlayer.PlayerScripts:WaitForChild("Components", 5):WaitForChild("Ads", 5)) end)
-    pcall(function() SafeDestroy(Workspace:WaitForChild("LogitechPopUp", 5).Environment.Exterior["MeasurementBox-1a7e7e"].Billboard.AdUnit) end)
-    pcall(function() SafeDestroy(Workspace:WaitForChild("LogitechPopUp", 5).Environment.Exterior["MeasurementBox-1a7e7e"].AdSubject.AdSubject) end)
-    
-    -- Block Remotes
-    local bloxbizRemotes = ReplicatedStorage:WaitForChild("BloxbizRemotes", 5)
-    if bloxbizRemotes then
-        SafeNeutered(bloxbizRemotes:WaitForChild("PreloadAdsEvent", 2))
-        pcall(function() bloxbizRemotes.getAdStorage.OnClientInvoke = function() return nil end end)
-    end
-    
-    Notify({Title="Ad Blocker", Content="Advertising components have been neutralized.", Duration=5, Image="shield-off"})
-end
+-- ### FIX IS HERE ### This function now finds global models just-in-time.
+local function HideTreadmillsForWorld(worldName) FindModelsForSpecificWorld(worldName); FindGlobalModels(); local t=TreadmillModels[worldName]; if t then for _,m in ipairs(t) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end; for _,m in ipairs(GlobalTreadmillModels) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end
 
 -- ==============================================================================
 --                                  UI CREATION
@@ -149,16 +114,7 @@ FarmTab:CreateToggle({Name = "Remove Treadmill", CurrentValue = false, Flag = "R
 -- ==============================================================================
 PetTab:CreateSection("Auto Hatch Eggs")
 PetTab:CreateDropdown({ Name = "Select Egg", Options = {"Desert Egg (10)", "Enchanted Egg (500)", "Wizard Egg (30k)", "Beach Egg (400k)", "Frozen Egg (2m)", "Heaven Egg (8m)", "Jungle Egg (15m)", "Alien Egg (25m)"}, CurrentOption = {"Desert Egg (10)"}, Flag = "SelectedEgg", Callback = function(Option) selectedEgg = Option[1] end })
-PetTab:CreateToggle({Name = "Enable Auto Hatch", CurrentValue = false, Flag = "AutoHatchToggle", Callback = function(Value)
-    autoHatchEnabled = Value; if not autoHatchEnabled then return end
-    spawn(function() while autoHatchEnabled do
-        local playerWins = ParseAbbreviatedNumber(LocalPlayer.leaderstats.Wins.Value)
-        local eggPrice = GetPriceFromString(selectedEgg)
-        local eggID = Eggs[selectedEgg]
-        if eggID and playerWins >= eggPrice then HatchRemote:InvokeServer(eggID, 1) end
-        task.wait(0.2)
-    end end)
-end})
+PetTab:CreateToggle({Name = "Enable Auto Hatch", CurrentValue = false, Flag = "AutoHatchToggle", Callback = function(Value) autoHatchEnabled = Value; if not autoHatchEnabled then return end; spawn(function() while autoHatchEnabled do local p, c, i = ParseAbbreviatedNumber(LocalPlayer.leaderstats.Wins.Value), GetPriceFromString(selectedEgg), Eggs[selectedEgg]; if i and p >= c then HatchRemote:InvokeServer(i, 1) end; task.wait(0.2) end end) end})
 -- ==============================================================================
 --                                  SHOP TAB
 -- ==============================================================================
@@ -170,16 +126,7 @@ ShopTab:CreateToggle({Name = "Auto Buy Dragons", CurrentValue = false, Flag = "A
 ShopTab:CreateToggle({Name = "Auto Buy Trails", CurrentValue = false, Flag = "AutoBuyTrailToggle", Callback = function(Value) autoBuyTrailEnabled = Value; if not autoBuyTrailEnabled then return end; spawn(function() while autoBuyTrailEnabled do for _, name in ipairs(TrailNames) do if not autoBuyTrailEnabled then break end; TrailRemote:FireServer(name); task.wait(0.2) end; task.wait(10) end end) end})
 ShopTab:CreateSection("Auto Hatch Chest")
 ShopTab:CreateDropdown({Name = "Select Chest", Options = {"Chest I (12m)"}, CurrentOption = {"Chest I (12m)"}, Flag = "SelectedChest", Callback = function(Option) selectedChest = Option[1] end})
-ShopTab:CreateToggle({Name = "Enable Auto Hatch Chest", CurrentValue = false, Flag = "AutoHatchChestToggle", Callback = function(Value)
-    autoHatchChestEnabled = Value; if not autoHatchChestEnabled then return end
-    spawn(function() while autoHatchChestEnabled do
-        local playerWins = ParseAbbreviatedNumber(LocalPlayer.leaderstats.Wins.Value)
-        local chestPrice = GetPriceFromString(selectedChest)
-        local chestID = Chests[selectedChest]
-        if chestID and playerWins >= chestPrice then HatchEnchantRemote:InvokeServer(chestID, 1) end
-        task.wait(0.2)
-    end end)
-end})
+ShopTab:CreateToggle({Name = "Enable Auto Hatch Chest", CurrentValue = false, Flag = "AutoHatchChestToggle", Callback = function(Value) autoHatchChestEnabled = Value; if not autoHatchChestEnabled then return end; spawn(function() while autoHatchChestEnabled do local p,c,i = ParseAbbreviatedNumber(LocalPlayer.leaderstats.Wins.Value), GetPriceFromString(selectedChest), Chests[selectedChest]; if i and p >= c then HatchEnchantRemote:InvokeServer(i, 1) end; task.wait(0.2) end end) end})
 -- ==============================================================================
 --                                  MISC TAB
 -- ==============================================================================
@@ -215,7 +162,6 @@ resetDestroyButton()
 -- ==============================================================================
 --                                 FINALIZATION
 -- ==============================================================================
-BlockAds()
 FindInitialModels()
 spawn(function()Notify({Title="Timed Pet",Content="The timed pet will be claimed in 19 minutes.",Duration=8,Image="clock"});task.wait(1140);TimedPetRemote:FireServer();Notify({Title="Timed Pet",Content="Claiming timed pet now!",Duration=5,Image="gift"})end)
 Rayfield:LoadConfiguration()
