@@ -3,6 +3,7 @@
     Creator: Nexus-Lua for Master
     Description: A clean and foundational UI for a sword fighting game,
                  created with the Rayfield library.
+    Version: 1.1 (Error Fix)
 ]]
 
 -- Load the Rayfield library
@@ -15,7 +16,9 @@ local Window = Rayfield:CreateWindow({
    LoadingTitle = "Fighting Sword Interface",
    LoadingSubtitle = "by Nexus-Lua",
    Theme = "Amethyst", -- A visually pleasing theme
-   ToggleUIKeybind = "LeftControl", -- Keybind to toggle the UI on PC. Mobile users will use the executor's toggle button.
+   
+   -- CORRECTED LINE: Using Enum.KeyCode for the toggle keybind
+   ToggleUIKeybind = Enum.KeyCode.LeftControl,
    
    -- Configuration saving is enabled to remember user settings across sessions
    ConfigurationSaving = {
