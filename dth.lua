@@ -57,8 +57,8 @@ local Worlds = { ["Spawn World"] = 1, ["Ocean World"] = 2, ["Sakura World"] = 3,
 local TeleportLocations = {
     ["Spawn World"] = CFrame.new(87.5667572, 97.2578049, -213.189499, 0.819155693, 0, 0.573571265, 0, 1, 0, -0.573571265, 0, 0.819155693),
     ["Ocean World"] = CFrame.new(921.766724, 97.2578049, -231.189514, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
-    ["Sakura World"] = CFrame.new(2890.36401, 97.2578049, -173.194839, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
-    ["Lava World"] = CFrame.new(1927.76001, 97.2578049, -236.700256, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
+    ["Sakura World"] = CFrame.new(1927.76001, 97.2578049, -236.700256, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
+    ["Lava World"] = CFrame.new(2890.36401, 97.2578049, -173.194839, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
     ["Glacier World"] = CFrame.new(3892.66406, 97.2578049, -173.194839, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247)
 }
 local World1_Treadmills = {{ID=12,StrengthRequirement=35.5e9,RebirthRequirement=400e3},{ID=11,StrengthRequirement=8.1e9,RebirthRequirement=75e3},{ID=10,StrengthRequirement=1.35e9,RebirthRequirement=20e3},{ID=9,StrengthRequirement=355e6,RebirthRequirement=8e3},{ID=8,StrengthRequirement=45.5e6,RebirthRequirement=2.5e3},{ID=7,StrengthRequirement=6.6e6,RebirthRequirement=500},{ID=6,StrengthRequirement=910e3,RebirthRequirement=250},{ID=5,StrengthRequirement=86e3,RebirthRequirement=75},{ID=4,StrengthRequirement=11.2e3,RebirthRequirement=25},{ID=3,StrengthRequirement=2.1e3,RebirthRequirement=10},{ID=2,StrengthRequirement=350,RebirthRequirement=5},{ID=1,StrengthRequirement=0,RebirthRequirement=0}}
