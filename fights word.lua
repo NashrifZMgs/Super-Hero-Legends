@@ -3,40 +3,44 @@
     Creator: Nexus-Lua for Master
     Description: A clean and foundational UI for a sword fighting game,
                  created with the Rayfield library.
-    Version: 1.4 (Teleport Feature)
+    Version: 1.5 (Corrected Teleport List)
 ]]
 
 -- Services and Player Variables
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- A table to store the teleport locations for easy management.
--- Each location has a name and its corresponding CFrame data.
+-- A table to store the teleport locations in the exact order requested.
+-- This structure ensures the dropdown list is not sorted alphabetically.
 local TeleportLocations = {
-    ["Castle"] = CFrame.new(-355.024994, 108.439995, -361.704987, 0, 0, -1, 0, 1, 0, 1, 0, 0),
-    ["Mushroom Forest"] = CFrame.new(-416.749054, 189.613907, -2692.51074, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Desert Pyramid"] = CFrame.new(-390.09903, 14.413908, -5540.87012, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Snow Land"] = CFrame.new(-399.999023, 219.813904, -7700.34033, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Alien Desert"] = CFrame.new(-279.721466, 45.7929802, -10495.709, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Candy"] = CFrame.new(-369.141479, 106.532974, -12073.459, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Energy Factory"] = CFrame.new(-364.411469, 107.392982, -13334.5283, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Altar"] = CFrame.new(-410.60144, -20.6570206, -15130.6377, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Demon King"] = CFrame.new(-519.031433, -239.126999, -17261.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Heavenly Gates"] = CFrame.new(-519.031433, -239.126999, -19761.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Halls of Valhalla"] = CFrame.new(-763.321106, -239.126999, -21523.373, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Voidfallen Kingdom"] = CFrame.new(-763.321106, -239.126999, -24417.9688, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["Realm of the Monkey King"] = CFrame.new(-763.321106, -239.126999, -27791.25, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["The Fractal Fortress"] = CFrame.new(-763.321106, -239.126999, -29846.2305, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-    ["The Timeless Cavern"] = CFrame.new(-763.321106, -239.126999, -32819.2891, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    {Name = "Castle", CFrame = CFrame.new(-355.024994, 108.439995, -361.704987, 0, 0, -1, 0, 1, 0, 1, 0, 0)},
+    {Name = "Mushroom Forest", CFrame = CFrame.new(-416.749054, 189.613907, -2692.51074, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Desert Pyramid", CFrame = CFrame.new(-390.09903, 14.413908, -5540.87012, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Snow Land", CFrame = CFrame.new(-399.999023, 219.813904, -7700.34033, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Underwater", CFrame = CFrame.new(-279.721466, 45.7929802, -10495.709, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Alien Desert", CFrame = CFrame.new(-369.141479, 106.532974, -12073.459, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Candy", CFrame = CFrame.new(-364.411469, 107.392982, -13334.5283, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Altar", CFrame = CFrame.new(-410.60144, -20.6570206, -15130.6377, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Demon King", CFrame = CFrame.new(-519.031433, -239.126999, -17261.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Heavenly Gates", CFrame = CFrame.new(-519.031433, -239.126999, -19761.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Halls of Valhalla", CFrame = CFrame.new(-763.321106, -239.126999, -21523.373, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Voidfallen Kingdom", CFrame = CFrame.new(-763.321106, -239.126999, -24417.9688, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Realm of the Monkey King", CFrame = CFrame.new(-763.321106, -239.126999, -27791.25, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "The Fractal Fortress", CFrame = CFrame.new(-763.321106, -239.126999, -29846.2305, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "The Timeless Cavern", CFrame = CFrame.new(-763.321106, -239.126999, -32819.2891, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "World 16 (Unnamed)", CFrame = CFrame.new(-416.749054, 189.613907, -36787.7656, 1, 0, 0, 0, 1, 0, 0, 0, 1)}
 }
+
+-- I have assumed the final CFrame belongs to the 16th world. I have named it "World 16 (Unnamed)".
+-- If you provide a name, I will replace it.
+-- Based on your new list, I have re-mapped the names from 'Underwater' onwards to the subsequent CFrame data.
 
 -- Helper function to get the names of the locations for the dropdown
 local function getLocationNames()
     local names = {}
-    for name, _ in pairs(TeleportLocations) do
-        table.insert(names, name)
+    for i, data in ipairs(TeleportLocations) do
+        table.insert(names, data.Name)
     end
-    table.sort(names) -- Sort names alphabetically for user convenience
     return names
 end
 
@@ -60,7 +64,7 @@ local Window = Rayfield:CreateWindow({
 -- Create Tabs in the correct order
 local FarmTab = Window:CreateTab("Farm", "swords") 
 local PetTab = Window:CreateTab("Pet", "dog")
-local MapTab = Window:CreateTab("Map", "map") -- New Map Tab
+local MapTab = Window:CreateTab("Map", "map") 
 local ShopTab = Window:CreateTab("Shop", "shopping-cart")
 local UpgradeTab = Window:CreateTab("Upgrade", "arrow-up-circle") 
 local MiscTab = Window:CreateTab("Misc", "sliders-horizontal")
@@ -74,11 +78,9 @@ local TeleportSection = MapTab:CreateSection("Teleport")
 local TeleportDropdown = MapTab:CreateDropdown({
    Name = "Select Destination",
    Options = getLocationNames(),
-   CurrentOption = {getLocationNames()[1]}, -- Default to the first option
+   CurrentOption = {getLocationNames()[1]},
    Flag = "TeleportDestination",
-   Callback = function(Option)
-       -- Callback is not needed for the button press, but is here for structure
-   end,
+   Callback = function(Option) end,
 })
 
 local TeleportButton = MapTab:CreateButton({
@@ -93,7 +95,15 @@ local TeleportButton = MapTab:CreateButton({
        end
 
        local selectedLocationName = TeleportDropdown.CurrentOption[1]
-       local targetCFrame = TeleportLocations[selectedLocationName]
+       local targetCFrame
+
+       -- Find the CFrame that matches the selected name
+       for i, data in ipairs(TeleportLocations) do
+           if data.Name == selectedLocationName then
+               targetCFrame = data.CFrame
+               break
+           end
+       end
 
        if targetCFrame then
            rootPart.CFrame = targetCFrame
