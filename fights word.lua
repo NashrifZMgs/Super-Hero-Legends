@@ -3,15 +3,15 @@
     Creator: Nexus-Lua for Master
     Description: A clean and foundational UI for a sword fighting game,
                  created with the Rayfield library.
-    Version: 1.5 (Corrected Teleport List)
+    Version: 2.0 (Final & Corrected Teleport Data)
 ]]
 
 -- Services and Player Variables
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- A table to store the teleport locations in the exact order requested.
--- This structure ensures the dropdown list is not sorted alphabetically.
+-- The complete and correctly mapped list of all 16 teleport locations.
+-- The order is preserved exactly as commanded.
 local TeleportLocations = {
     {Name = "Castle", CFrame = CFrame.new(-355.024994, 108.439995, -361.704987, 0, 0, -1, 0, 1, 0, 1, 0, 0)},
     {Name = "Mushroom Forest", CFrame = CFrame.new(-416.749054, 189.613907, -2692.51074, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
@@ -20,20 +20,16 @@ local TeleportLocations = {
     {Name = "Underwater", CFrame = CFrame.new(-279.721466, 45.7929802, -10495.709, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
     {Name = "Alien Desert", CFrame = CFrame.new(-369.141479, 106.532974, -12073.459, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
     {Name = "Candy", CFrame = CFrame.new(-364.411469, 107.392982, -13334.5283, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "Altar", CFrame = CFrame.new(-410.60144, -20.6570206, -15130.6377, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "Demon King", CFrame = CFrame.new(-519.031433, -239.126999, -17261.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "Heavenly Gates", CFrame = CFrame.new(-519.031433, -239.126999, -19761.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "Halls of Valhalla", CFrame = CFrame.new(-763.321106, -239.126999, -21523.373, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "Voidfallen Kingdom", CFrame = CFrame.new(-763.321106, -239.126999, -24417.9688, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "Realm of the Monkey King", CFrame = CFrame.new(-763.321106, -239.126999, -27791.25, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "The Fractal Fortress", CFrame = CFrame.new(-763.321106, -239.126999, -29846.2305, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "The Timeless Cavern", CFrame = CFrame.new(-763.321106, -239.126999, -32819.2891, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    {Name = "World 16 (Unnamed)", CFrame = CFrame.new(-416.749054, 189.613907, -36787.7656, 1, 0, 0, 0, 1, 0, 0, 0, 1)}
+    {Name = "Energy Factory", CFrame = CFrame.new(-410.60144, -20.6570206, -15130.6377, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Altar", CFrame = CFrame.new(-519.031433, -239.126999, -17261.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Demon King", CFrame = CFrame.new(-519.031433, -239.126999, -19761.8574, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Heavenly Gates", CFrame = CFrame.new(-763.321106, -239.126999, -21523.373, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Halls of Valhalla", CFrame = CFrame.new(-763.321106, -239.126999, -24417.9688, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Voidfallen Kingdom", CFrame = CFrame.new(-763.321106, -239.126999, -27791.25, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "Realm of the Monkey King", CFrame = CFrame.new(-763.321106, -239.126999, -29846.2305, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "The Fractal Fortress", CFrame = CFrame.new(-763.321106, -239.126999, -32819.2891, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
+    {Name = "The Timeless Cavern", CFrame = CFrame.new(-416.749054, 189.613907, -36787.7656, 1, 0, 0, 0, 1, 0, 0, 0, 1)}
 }
-
--- I have assumed the final CFrame belongs to the 16th world. I have named it "World 16 (Unnamed)".
--- If you provide a name, I will replace it.
--- Based on your new list, I have re-mapped the names from 'Underwater' onwards to the subsequent CFrame data.
 
 -- Helper function to get the names of the locations for the dropdown
 local function getLocationNames()
