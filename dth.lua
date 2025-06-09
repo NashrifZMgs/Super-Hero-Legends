@@ -1,8 +1,8 @@
 --[[
     Script: Dragon Training Hub UI
     Created by: Nexus-Lua for Master
-    Function: Full-featured hub with CFrame teleportation and a fixed Destroy UI button.
-    Version: 7.4
+    Function: Full-featured hub with updated CFrame teleportation for all worlds.
+    Version: 7.5
 ]]
 
 -- Load the Rayfield User Interface Library
@@ -32,12 +32,10 @@ local HatchEnchantRemote = ReplicatedStorage.Remotes.Server.HatchEnchant
 --                            CONFIGURATION & DATA
 -- ==============================================================================
 
--- Loop Control Flags
 local autoTrainEnabled, autoRebirthEnabled, autoHatchEnabled, autoUpgradeEnabled, autoGiftEnabled, autoSpinEnabled, autoPotionEnabled, autoBuyDragonEnabled, autoBuyTrailEnabled, autoHatchChestEnabled = false, false, false, false, false, false, false, false, false, false
 local notificationsEnabled = true
 local removeTreadmillsEnabled = false
 
--- Feature-specific variables
 local playerRebirths = 0
 local selectedWorld = "Spawn World"
 local selectedEgg = "Desert Egg (10)"
@@ -55,9 +53,13 @@ local function GetPriceFromString(str) local p = string.match(str, "%(([%d%.mkbt
 
 -- Data Tables
 local Worlds = { ["Spawn World"] = 1, ["Ocean World"] = 2, ["Sakura World"] = 3, ["Lava World"] = 4, ["Glacier World"] = 5 }
+-- ### FIX IS HERE ### Updated CFrame data for all worlds.
 local TeleportLocations = {
-    ["Spawn World"] = CFrame.new(-3.62890625, 82.1866684, -107.973366),
-    ["Ocean World"] = CFrame.new(807.5, 80.1041412, 507.5)
+    ["Spawn World"] = CFrame.new(87.5667572, 97.2578049, -213.189499, 0.819155693, 0, 0.573571265, 0, 1, 0, -0.573571265, 0, 0.819155693),
+    ["Ocean World"] = CFrame.new(921.766724, 97.2578049, -231.189514, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
+    ["Sakura World"] = CFrame.new(2890.36401, 97.2578049, -173.194839, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
+    ["Lava World"] = CFrame.new(1927.76001, 97.2578049, -236.700256, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
+    ["Glacier World"] = CFrame.new(3892.66406, 97.2578049, -173.194839, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247)
 }
 local World1_Treadmills = {{ID=12,StrengthRequirement=35.5e9,RebirthRequirement=400e3},{ID=11,StrengthRequirement=8.1e9,RebirthRequirement=75e3},{ID=10,StrengthRequirement=1.35e9,RebirthRequirement=20e3},{ID=9,StrengthRequirement=355e6,RebirthRequirement=8e3},{ID=8,StrengthRequirement=45.5e6,RebirthRequirement=2.5e3},{ID=7,StrengthRequirement=6.6e6,RebirthRequirement=500},{ID=6,StrengthRequirement=910e3,RebirthRequirement=250},{ID=5,StrengthRequirement=86e3,RebirthRequirement=75},{ID=4,StrengthRequirement=11.2e3,RebirthRequirement=25},{ID=3,StrengthRequirement=2.1e3,RebirthRequirement=10},{ID=2,StrengthRequirement=350,RebirthRequirement=5},{ID=1,StrengthRequirement=0,RebirthRequirement=0}}
 local World2_Treadmills = {{ID=24,StrengthRequirement=75e18,RebirthRequirement=10e9},{ID=23,StrengthRequirement=20e18,RebirthRequirement=45e9},{ID=22,StrengthRequirement=5e18,RebirthRequirement=10e9},{ID=21,StrengthRequirement=1e18,RebirthRequirement=4e9},{ID=20,StrengthRequirement=550e15,RebirthRequirement=1.2e9},{ID=19,StrengthRequirement=45e15,RebirthRequirement=500e6},{ID=18,StrengthRequirement=8e15,RebirthRequirement=250e6},{ID=17,StrengthRequirement=800e12,RebirthRequirement=100e6},{ID=16,StrengthRequirement=100e12,RebirthRequirement=35e6},{ID=15,StrengthRequirement=25e12,RebirthRequirement=15e6},{ID=14,StrengthRequirement=4e12,RebirthRequirement=3e6},{ID=13,StrengthRequirement=500e9,RebirthRequirement=800e3}}
@@ -66,11 +68,11 @@ local Chests = {["Chest I (12m)"] = 1}
 local TrailNames = {"Red","Yellow","Green","Blue","Purple","Midnight","Cash Money","Heaven","Crystal","Electro","Pink Flame","Multi","Enchanted","Glitched","Elemental","Frozen","Flaming","Holiday","Cartoony","Lazer","Time","Bee","Ethereal","Plasma","Red Giant","Earth","Firework","Hacker","Ocean","Toxic"}
 
 -- Treadmill Removal System
-local TreadmillModels = {["Spawn World"]={},["Ocean World"]={}}; local GlobalTreadmillModels, hiddenTreadmills, worldsScanned = {}, {}, {}
+local TreadmillModels = {["Spawn World"]={},["Ocean World"]={}}; local GlobalTreadmillModels, hiddenTreadmills, worldsScanned, globalsScanned = {}, {}, {}, false
 local function FindModelsForSpecificWorld(worldName) if worldsScanned[worldName] then return end; pcall(function() if worldName=="Spawn World" then local s=Workspace:FindFirstChild("PersistentWorld"); if s then for _,c in ipairs(s:GetChildren()) do if c:IsA("Model") then table.insert(TreadmillModels["Spawn World"],c) end end end elseif worldName=="Ocean World" then local o=Workspace:FindFirstChild("WorldMap"); if o then for _,c in ipairs(o:GetChildren()) do if c:IsA("Model") then table.insert(TreadmillModels["Ocean World"],c) end end end end end); worldsScanned[worldName]=true; Notify({Title="Scanner",Content="Treadmills for "..worldName.." have been indexed.",Duration=3,Image="search"}) end
-local function FindInitialModels() pcall(function() local g={"TreadmillBase","TreadmillPrompts","VIPTreadmills"}; for _,n in ipairs(g) do local m=Workspace:FindFirstChild(n); if m then table.insert(GlobalTreadmillModels,m) end end; FindModelsForSpecificWorld("Spawn World") end) end
+local function FindGlobalModels() if globalsScanned then return end; pcall(function() local g={"TreadmillBase","TreadmillPrompts","VIPTreadmills"}; for _,n in ipairs(g) do local m=Workspace:FindFirstChild(n); if m then table.insert(GlobalTreadmillModels,m) end end end); globalsScanned = true end
 local function RestoreAllTreadmills() for _,d in ipairs(hiddenTreadmills) do if d.model and d.originalParent then pcall(function() d.model.Parent=d.originalParent end) end end; hiddenTreadmills={} end
-local function HideTreadmillsForWorld(worldName) FindModelsForSpecificWorld(worldName); local t=TreadmillModels[worldName]; if t then for _,m in ipairs(t) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end; for _,m in ipairs(GlobalTreadmillModels) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end
+local function HideTreadmillsForWorld(worldName) FindModelsForSpecificWorld(worldName); FindGlobalModels(); local t=TreadmillModels[worldName]; if t then for _,m in ipairs(t) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end; for _,m in ipairs(GlobalTreadmillModels) do table.insert(hiddenTreadmills,{model=m,originalParent=m.Parent});m.Parent=nil end end
 
 -- ==============================================================================
 --                                  UI CREATION
@@ -96,7 +98,7 @@ PetTab:CreateToggle({Name = "Enable Auto Hatch", CurrentValue = false, Flag = "A
 --                                   MAP TAB
 -- ==============================================================================
 MapTab:CreateSection("Teleport")
-MapTab:CreateDropdown({Name = "Select Location", Options = {"Spawn World", "Ocean World"}, CurrentOption = {"Spawn World"}, Flag = "TeleportLocation", Callback = function(Option) selectedTeleportLocation = Option[1] end})
+MapTab:CreateDropdown({Name = "Select Location", Options = {"Spawn World", "Ocean World", "Sakura World", "Lava World", "Glacier World"}, CurrentOption = {"Spawn World"}, Flag = "TeleportLocation", Callback = function(Option) selectedTeleportLocation = Option[1] end})
 MapTab:CreateButton({Name = "Teleport", Callback = function()
     local targetCFrame = TeleportLocations[selectedTeleportLocation]
     if targetCFrame and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -145,25 +147,20 @@ spawn(function()setupRebirthWatcher()end)
 SettingTab:CreateSection("General")
 SettingTab:CreateToggle({Name="Enable Notifications",CurrentValue=true,Flag="EnableNotifications",Callback=function(v)notificationsEnabled=v end})
 SettingTab:CreateSection("Danger Zone")
--- ### FIX IS HERE ### Rebuilt destroy button logic for stability.
 local destroyConfirmationState = false
-local destroyButton = SettingTab:CreateButton({Name = "Destroy UI", Callback = function()
-    if not destroyConfirmationState then
-        destroyConfirmationState = true
-        destroyButton:Set("Are you sure? Click to confirm.")
-        task.delay(5, function()
-            if destroyConfirmationState then
-                destroyConfirmationState = false
-                destroyButton:Set("Destroy UI")
-            end
-        end)
-    else
-        Rayfield:Destroy()
-    end
-end})
+local destroyButton = SettingTab:CreateButton({Name = "Destroy UI", Callback = function() if not destroyConfirmationState then destroyConfirmationState = true; destroyButton:Set("Are you sure? Click to confirm."); task.delay(5, function() if destroyConfirmationState then destroyConfirmationState = false; destroyButton:Set("Destroy UI") end end) else Rayfield:Destroy() end end})
 -- ==============================================================================
 --                                 FINALIZATION
 -- ==============================================================================
+spawn(function()
+    pcall(function()
+        local function SafeDestroy(instance) if instance then pcall(function() instance:Destroy() end) end end
+        pcall(function() SafeDestroy(CoreGui:WaitForChild("RobloxGui", 5):WaitForChild("Modules", 5):WaitForChild("Ad", 5)) end)
+        local bloxbizRemotes = ReplicatedStorage:WaitForChild("BloxbizRemotes", 5)
+        if bloxbizRemotes then bloxbizRemotes:Destroy() end
+        Notify({Title="Ad Blocker", Content="Advertising components neutralized.", Duration=5, Image="shield-off"})
+    end)
+end)
 FindInitialModels()
 spawn(function()Notify({Title="Timed Pet",Content="The timed pet will be claimed in 19 minutes.",Duration=8,Image="clock"});task.wait(1140);TimedPetRemote:FireServer();Notify({Title="Timed Pet",Content="Claiming timed pet now!",Duration=5,Image="gift"})end)
 Rayfield:LoadConfiguration()
