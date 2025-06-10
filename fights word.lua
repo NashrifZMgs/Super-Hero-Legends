@@ -59,7 +59,7 @@ PT:CreateButton({Name = "Scan for Nearby Eggs", Callback = function()
     
     for i, eggMeta in ipairs(ED_Metadata) do
         local ui = hatchGuis:FindFirstChild(eggMeta.ID)
-        if ui and ui.Visible then
+        if ui and ui.Enabled then -- CORRECTED: Changed .Visible to .Enabled
             local req = eggMeta.Req; local reqString;
             if req>=1e30 then reqString=string.format("%.2fno",req/1e30)elseif req>=1e27 then reqString=string.format("%.2foc",req/1e27)elseif req>=1e24 then reqString=string.format("%.2fsp",req/1e24)elseif req>=1e21 then reqString=string.format("%.2fsx",req/1e21)elseif req>=1e18 then reqString=string.format("%.2fqi",r/1e18)elseif req>=1e15 then reqString=string.format("%.2fqa",r/1e15)elseif req>=1e12 then reqString=string.format("%.2ft",req/1e12)elseif req>=1e9 then reqString=string.format("%.2fb",req/1e9)elseif req>=1e6 then reqString=string.format("%.2fm",req/1e6)elseif req>=1e3 then reqString=string.format("%.2fk",req/1e3)else reqString=tostring(req)end
             local displayName = "Egg "..i.." ("..reqString:gsub("%.00","").." Wins)"
