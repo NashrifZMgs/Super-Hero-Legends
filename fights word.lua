@@ -62,22 +62,26 @@ local function gEN() local n={}; for i,d in ipairs(ED)do local r=d.Req; local s;
 local EID = PT:CreateDropdown({Name="Select Egg",Options=gEN(),CurrentOption={gEN()[1]},Flag="AutoHatchEgg",Callback=function(selectedEggName)
     petNicknameToIdMap = {}; local options = {"None"};
     local eggIndex = tonumber(selectedEggName:match("%d+")); local drawId = ED[eggIndex].ID;
-    local eggUI = lp.PlayerGui:WaitForChild("HatchGuis"):WaitForChild(drawId);
-    if eggUI then
-        local petsFolder = eggUI:WaitForChild("Frame"):WaitForChild("Pets");
-        for i, petModel in ipairs(petsFolder:GetChildren()) do
-            if petModel:IsA("Model") then
-                local petNum = tonumber(petModel.Name:match("%d+")) or i;
-                local nickname = "Pet "..petNum;
-                options[#options + 1] = nickname;
-                petNicknameToIdMap[nickname] = petModel.Name;
-            end
+    
+    -- Corrected logic: Safely check for the UI without erroring
+    local hatchGuis = lp.PlayerGui:FindFirstChild("HatchGuis")
+    local eggUI = hatchGuis and hatchGuis:FindFirstChild(drawId)
+    local petsFolder = eggUI and eggUI:FindFirstChild("Frame") and eggUI.Frame:FindFirstChild("Pets")
+
+    if petsFolder then
+        local petModels = {};
+        for _, petModel in ipairs(petsFolder:GetChildren()) do if petModel:IsA("Model") then table.insert(petModels, petModel) end end
+        table.sort(petModels, function(a, b) return a.Name < b.Name end);
+        for i, petModel in ipairs(petModels) do
+            local nickname = "Pet " .. i; table.insert(options, nickname); petNicknameToIdMap[nickname] = petModel.Name;
         end
+    else
+        RF:Notify({Title="Auto-Delete",Content="Could not find pets. Stand near the egg.",Duration=5,Image="alert-circle"})
     end
     AutoDeleteDropdown:Refresh(options); AutoDeleteDropdown:Set({"None"});
 end});
 AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
-EID.Callback(EID.CurrentOption[1]); -- Initial population of delete dropdown
+task.spawn(function() EID.Callback(EID.CurrentOption[1]); end) -- Initial population of delete dropdown
 PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
 task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("leaderstats"); local wS=l and l:FindFirstChild("\240\159\143\134Wins"); if wS then
     local cW=wS.Value; local sEN=EID.CurrentOption[1]; local sEI=tonumber(sEN:match("%d+")); local sED=ED[sEI];
