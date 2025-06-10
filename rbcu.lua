@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 22)
-    Master's Request: Implement a multi-select Auto Upgrade feature.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Auto Rebirth, Auto Upgrade
-    Optimization: Mobile/Touchscreen, Robust Loading, Multi-Select Logic
+    Nexus-Lua Script (Version 23)
+    Master's Request: Fix Auto Upgrade by converting the first letter of the ID to lowercase.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Auto Rebirth, Auto Upgrade (Fixed)
+    Optimization: Mobile/Touchscreen, Robust Loading, String Formatting
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -86,55 +86,43 @@ PetTab:CreateToggle({ Name = "Auto Hatch Selected Egg (x3)", CurrentValue = fals
 end})
 
 
---============ UPGRADES TAB ============--
+--============ UPGRADES TAB (FIXED) ============--
 local UpgradeSection = UpgradesTab:CreateSection("Auto Upgrade")
 
-local UPGRADE_SERVICE_INDEX = 15 -- Path provided by Master
+local UPGRADE_SERVICE_INDEX = 15
 
 local function getUpgradeNames()
     local upgradeNames = {}
     local upgradeHolder = game:GetService("StarterGui"):WaitForChild("MainUI", 5):WaitForChild("Menus", 5):WaitForChild("UpgradesFrame", 5):WaitForChild("Main", 5):WaitForChild("List", 5):WaitForChild("Holder", 5):WaitForChild("Upgrades", 5)
-    if upgradeHolder then
-        for _, upgradeItem in pairs(upgradeHolder:GetChildren()) do
-            if upgradeItem:IsA("Frame") then table.insert(upgradeNames, upgradeItem.Name) end
-        end
-    end
+    if upgradeHolder then for _, item in pairs(upgradeHolder:GetChildren()) do if item:IsA("Frame") then table.insert(upgradeNames, item.Name) end end end
     return upgradeNames
 end
 
 local allUpgradeNames = getUpgradeNames()
 if #allUpgradeNames == 0 then table.insert(allUpgradeNames, "No Upgrades Found") end
 
-local UpgradeDropdown = UpgradesTab:CreateDropdown({
-    Name = "Select Upgrades", Options = allUpgradeNames, MultipleOptions = true, Flag = "UpgradeSelectionDropdown"
-})
+local UpgradeDropdown = UpgradesTab:CreateDropdown({ Name = "Select Upgrades", Options = allUpgradeNames, MultipleOptions = true, Flag = "UpgradeSelectionDropdown" })
 
 _G.isAutoUpgrading = false
-UpgradesTab:CreateToggle({
-    Name = "Auto Upgrade Selected", CurrentValue = false, Flag = "AutoUpgradeToggle",
-    Callback = function(Value)
-        _G.isAutoUpgrading = Value
-        if Value then
-            task.spawn(function()
-                local s, uRF = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[UPGRADE_SERVICE_INDEX]:WaitForChild("RF"):WaitForChild("jag känner en bot, hon heter anna, anna heter hon") end)
-                if not s or not uRF then
-                    Rayfield:Notify({Title = "Error", Content = "Upgrade remote needs updating.", Duration = 7, Image = "alert-triangle"})
-                    _G.isAutoUpgrading = false; Rayfield.Flags.AutoUpgradeToggle:Set(false); return
+UpgradesTab:CreateToggle({ Name = "Auto Upgrade Selected", CurrentValue = false, Flag = "AutoUpgradeToggle", Callback = function(Value)
+    _G.isAutoUpgrading = Value
+    if Value then task.spawn(function()
+        local s, uRF = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[UPGRADE_SERVICE_INDEX]:WaitForChild("RF"):WaitForChild("jag känner en bot, hon heter anna, anna heter hon") end)
+        if not s or not uRF then Rayfield:Notify({Title = "Error", Content = "Upgrade remote needs updating.", Duration = 7, Image = "alert-triangle"}); _G.isAutoUpgrading = false; Rayfield.Flags.AutoUpgradeToggle:Set(false); return end
+        while _G.isAutoUpgrading do
+            if #UpgradeDropdown.CurrentOption > 0 then
+                for _, upgradeName in ipairs(UpgradeDropdown.CurrentOption) do
+                    -- FIX: Convert the first letter of the upgrade name to lowercase.
+                    local formattedUpgradeName = string.lower(string.sub(upgradeName, 1, 1)) .. string.sub(upgradeName, 2)
+                    pcall(uRF.InvokeServer, uRF, formattedUpgradeName)
+                    task.wait(0.2)
+                    if not _G.isAutoUpgrading then break end
                 end
-                while _G.isAutoUpgrading do
-                    if #UpgradeDropdown.CurrentOption > 0 then
-                        for _, upgradeName in ipairs(UpgradeDropdown.CurrentOption) do
-                            pcall(uRF.InvokeServer, uRF, upgradeName)
-                            task.wait(0.2) -- A safe delay between each upgrade attempt in the selection
-                            if not _G.isAutoUpgrading then break end -- Stop if toggle is turned off mid-loop
-                        end
-                    end
-                    task.wait(0.5) -- Wait before re-checking the entire list
-                end
-            end)
+            end
+            task.wait(0.5)
         end
-    end
-})
+    end) end
+end})
 
 
 --============ PROFILE TAB & SETTINGS ============--
