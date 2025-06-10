@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 16)
-    Master's Request: Change auto-hatch speed back to 0.05 seconds.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Faster Speed)
-    Optimization: Mobile/Touchscreen, Robust Loading, Faster Remote Firing
+    Nexus-Lua Script (Version 17)
+    Master's Request: Fix broken remotes for Auto Click and Auto Hatch.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Maintainable Paths)
+    Optimization: Mobile/Touchscreen, Robust Loading, Easily-Updated Variables
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -42,6 +42,11 @@ local SettingsTab = Window:CreateTab("Settings", "settings-2")
 
 --============ CLICKS TAB ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
+
+--[[ MASTER, ATTENTION: Update these index numbers for Auto Click after a game update. ]]
+local CLICK_SERVICE_INDEX = 19 -- [TODO: I NEED THE NEW INDEX FOR THE CLICKING SERVICE HERE]
+local CLICK_EVENT_INDEX = 3   -- [TODO: I NEED THE NEW INDEX FOR THE CLICKING EVENT HERE]
+
 _G.isAutoClicking = false
 ClicksTab:CreateToggle({
    Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle",
@@ -49,9 +54,9 @@ ClicksTab:CreateToggle({
       _G.isAutoClicking = Value
       if Value then
          task.spawn(function()
-            local s, r = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[19]:WaitForChild("RE"):GetChildren()[3] end)
+            local s, r = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[CLICK_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[CLICK_EVENT_INDEX] end)
             if not s or not r then
-                Rayfield:Notify({Title = "Error", Content = "Auto Click remote not found.", Duration = 5, Image = "alert-triangle"})
+                Rayfield:Notify({Title = "Error", Content = "Auto Click remote not found. Path needs updating.", Duration = 7, Image = "alert-triangle"})
                 _G.isAutoClicking = false; Rayfield.Flags.AutoClickToggle:Set(false)
                 return
             end
@@ -62,12 +67,15 @@ ClicksTab:CreateToggle({
 })
 
 
---============ PET TAB (SPEED ADJUSTED) ============--
+--============ PET TAB ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
+--[[ MASTER, ATTENTION: Update these index numbers for Auto Hatch after a game update. ]]
+local HATCH_SERVICE_INDEX = 20 -- [TODO: I NEED THE NEW INDEX FOR THE HATCHING SERVICE HERE]
+local HATCH_EVENT_INDEX = 3   -- [TODO: I NEED THE NEW INDEX FOR THE HATCHING EVENT HERE]
+
 local function getEggNames()
-    local eggNames = {}
-    local mapsFolder = workspace.Game.Maps
+    local eggNames = {}; local mapsFolder = workspace.Game.Maps
     for _, mapInstance in pairs(mapsFolder:GetChildren()) do
         if mapInstance:IsA("Folder") and mapInstance:FindFirstChild("Eggs") then
             for _, eggInstance in pairs(mapInstance.Eggs:GetChildren()) do
@@ -75,18 +83,13 @@ local function getEggNames()
             end
         end
     end
-    table.sort(eggNames)
-    return eggNames
+    table.sort(eggNames); return eggNames
 end
 
 local allEggNames = getEggNames()
 if #allEggNames == 0 then table.insert(allEggNames, "No Eggs Found In Workspace") end
 
-local EggDropdown = PetTab:CreateDropdown({
-    Name = "Select Egg", Options = allEggNames, CurrentOption = {allEggNames[1]},
-    MultipleOptions = false, Flag = "EggNameDropdown",
-})
-
+local EggDropdown = PetTab:CreateDropdown({ Name = "Select Egg", Options = allEggNames, CurrentOption = {allEggNames[1]}, MultipleOptions = false, Flag = "EggNameDropdown" })
 _G.isAutoHatching = false
 local AutoHatchStatusButton = PetTab:CreateButton({Name = "Status: Idle", Callback = function() end})
 
@@ -96,11 +99,9 @@ PetTab:CreateToggle({
       _G.isAutoHatching = Value
       if Value then
          task.spawn(function()
-            local s, hR = pcall(function() 
-                return game:GetService("ReplicatedStorage"):WaitForChild("Packages", 9e9):WaitForChild("Knit", 9e9):WaitForChild("Services", 9e9):GetChildren()[20]:WaitForChild("RE", 9e9):GetChildren()[3]
-            end)
+            local s, hR = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[HATCH_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[HATCH_EVENT_INDEX] end)
             if not s or not hR then
-                Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. This path may be unstable.", Duration = 7, Image = "alert-circle"})
+                Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. Path needs updating.", Duration = 7, Image = "alert-circle"})
                 _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
                 return
             end
@@ -108,19 +109,11 @@ PetTab:CreateToggle({
                 local selectedEggName = EggDropdown.CurrentOption[1]
                 if selectedEggName and selectedEggName ~= "No Eggs Found In Workspace" then
                     AutoHatchStatusButton:Set("Status: Attempting: " .. selectedEggName)
-                    
-                    local args = {[1] = selectedEggName, [2] = 1}
-                    
-                    local fireSuccess, fireError = pcall(function()
-                        hR:FireServer(unpack(args))
-                    end)
-                    
+                    local fireSuccess, fireError = pcall(function() hR:FireServer(selectedEggName, 1) end)
                     if not fireSuccess then
                         Rayfield:Notify({Title = "Hatch Error", Content = "Failed to fire remote: " .. tostring(fireError), Duration = 8, Image = "alert-octagon"})
                         _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
                     end
-                    
-                    -- Sleep time changed back to 0.05 seconds
                     task.wait(0.05)
                 else
                     AutoHatchStatusButton:Set("Status: No valid egg selected")
@@ -149,8 +142,7 @@ SettingsTab:CreateButton({
     Name = "Restart Script",
     Callback = function()
         Rayfield:Notify({ Title = "Restarting", Content = "Script will restart in 3 seconds.", Duration = 3, Image = "loader" })
-        Rayfield:Destroy()
-        task.wait(3)
+        Rayfield:Destroy(); task.wait(3)
         pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))() end)
     end
 })
@@ -164,8 +156,8 @@ spawn(function()
         if not pcall(function() Rayfield:IsVisible() end) then break end
         local elapsedTime = tick() - startTime
         PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d", math.floor(elapsedTime / 3600), math.floor((elapsedTime % 3600) / 60), math.floor(elapsedTime % 60)))
-        local r = leaderstats and leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths"); RebirthsButton:Set(r and "Rebirths: "..tostring(r.Value) or "Rebirths: N/A")
-        local c = leaderstats and leaderstats:FindFirstChild("\240\159\145\143 Clicks"); ClicksButton:Set(c and "Clicks: "..tostring(c.Value) or "Clicks: N/A")
-        local e = leaderstats and leaderstats:FindFirstChild("\240\159\165\154 Eggs"); EggsButton:Set(e and "Eggs: "..tostring(e.Value) or "Eggs: N/A")
+        local r = leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths"); RebirthsButton:Set(r and "Rebirths: "..tostring(r.Value) or "Rebirths: N/A")
+        local c = leaderstats:FindFirstChild("\240\159\145\143 Clicks"); ClicksButton:Set(c and "Clicks: "..tostring(c.Value) or "Clicks: N/A")
+        local e = leaderstats:FindFirstChild("\240\159\165\154 Eggs"); EggsButton:Set(e and "Eggs: "..tostring(e.Value) or "Eggs: N/A")
     end
 end)
