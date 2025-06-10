@@ -1,12 +1,21 @@
 --[[
-    Nexus-Lua Script
-    Master's Request: Add live stats to Profile tab and a Destroy UI button to Settings tab.
-    Functionality: UI Base, Live Stats Display, UI Control
-    Optimization: Mobile/Touchscreen
+    Nexus-Lua Script (Version 2)
+    Master's Request: Fix script based on error logs.
+    Functionality: UI Base, Live Stats Display, UI Control, Error Handling
+    Optimization: Mobile/Touchscreen, Robust Loading
 ]]
 
--- Load the Rayfield User Interface Library
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- A more stable way to load the Rayfield library
+local Rayfield, status = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+-- Check if the library loaded correctly. If not, stop the script and inform the user.
+if not status or not Rayfield then
+    warn("Nexus-Lua: CRITICAL ERROR - The Rayfield UI library failed to load.")
+    warn("This is often an issue with the mobile executor. Please try restarting or using a different executor.")
+    return -- Stops the script from running further to prevent more errors
+end
 
 -- Get the live name of the current game to use as the window title
 local success, gameName = pcall(function()
@@ -35,13 +44,14 @@ local UpgradesTab = Window:CreateTab("Upgrades", "arrow-up-circle")
 local MapTab = Window:CreateTab("Map", "map")
 local MiscTab = Window:CreateTab("Misc", "package")
 local ProfileTab = Window:CreateTab("Profile", "user-circle")
-local SettingsTab = Window:Create-Tab("Settings", "settings-2")
+-- Corrected typo from 'Create-Tab' to 'CreateTab'
+local SettingsTab = Window:CreateTab("Settings", "settings-2")
 
 
 --============ PROFILE TAB ============--
 local ProfileSection = ProfileTab:CreateSection("Live Player Statistics")
 
--- Create buttons to display stats. The callback is empty as they are for visual feedback only.
+-- Create buttons to display stats.
 local PlaytimeButton = ProfileTab:CreateButton({
    Name = "Playtime: Loading...",
    Callback = function() end,
@@ -83,6 +93,9 @@ spawn(function()
 
     -- This loop runs forever to provide live data
     while wait(1) do
+        -- This pcall checks if the script is still running. If not, it stops the loop to prevent errors.
+        if not pcall(function() RebirthsButton:Set(" ") end) then break end
+
         -- Update Playtime
         local elapsedTime = tick() - startTime
         local hours = math.floor(elapsedTime / 3600)
