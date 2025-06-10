@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 13)
-    Master's Request: Fix persistent callback error and add a Restart feature.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Script Restart
-    Optimization: Mobile/Touchscreen, Robust Loading, Unloaded Map Compatibility
+    Nexus-Lua Script (Version 14)
+    Master's Request: Fix non-functional Auto Hatch and improve stability.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Improved Stability)
+    Optimization: Mobile/Touchscreen, Robust Loading, Slower/Safer Remote Firing
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -62,7 +62,7 @@ ClicksTab:CreateToggle({
 })
 
 
---============ PET TAB (FIXED) ============--
+--============ PET TAB (IMPROVED) ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
 local function getEggNames()
@@ -83,12 +83,8 @@ local allEggNames = getEggNames()
 if #allEggNames == 0 then table.insert(allEggNames, "No Eggs Found In Workspace") end
 
 local EggDropdown = PetTab:CreateDropdown({
-    Name = "Select Egg",
-    Options = allEggNames,
-    CurrentOption = {allEggNames[1]},
-    MultipleOptions = false,
-    Flag = "EggNameDropdown",
-    -- FIX: The callback has been completely removed to prevent the error.
+    Name = "Select Egg", Options = allEggNames, CurrentOption = {allEggNames[1]},
+    MultipleOptions = false, Flag = "EggNameDropdown",
 })
 
 _G.isAutoHatching = false
@@ -109,8 +105,20 @@ PetTab:CreateToggle({
             while _G.isAutoHatching do
                 local selectedEggName = EggDropdown.CurrentOption[1]
                 if selectedEggName and selectedEggName ~= "No Eggs Found In Workspace" then
-                    AutoHatchStatusButton:Set("Status: Hatching " .. selectedEggName)
-                    hR:FireServer(selectedEggName, 1); task.wait(0.05)
+                    AutoHatchStatusButton:Set("Status: Attempting: " .. selectedEggName)
+                    
+                    -- New error checking for the FireServer call itself
+                    local fireSuccess, fireError = pcall(function()
+                        hR:FireServer(selectedEggName, 1)
+                    end)
+                    
+                    if not fireSuccess then
+                        Rayfield:Notify({Title = "Hatch Error", Content = "Failed to fire remote: " .. tostring(fireError), Duration = 8, Image = "alert-octagon"})
+                        _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
+                    end
+                    
+                    -- Slower, more stable delay
+                    task.wait(0.2)
                 else
                     AutoHatchStatusButton:Set("Status: No valid egg selected")
                     _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
@@ -133,27 +141,14 @@ local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Callback
 
 --============ SETTINGS TAB ============--
 local SettingsSection = SettingsTab:CreateSection("Interface Control")
-
-SettingsTab:CreateButton({
-    Name = "Destroy UI",
-    Callback = function() Rayfield:Destroy() end
-})
-
--- NEW: Restart button as requested.
+SettingsTab:CreateButton({ Name = "Destroy UI", Callback = function() Rayfield:Destroy() end })
 SettingsTab:CreateButton({
     Name = "Restart Script",
     Callback = function()
         Rayfield:Notify({ Title = "Restarting", Content = "Script will restart in 3 seconds.", Duration = 3, Image = "loader" })
         Rayfield:Destroy()
         task.wait(3)
-        
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))()
-        end)
-
-        if not success then
-            warn("Nexus-Lua: Restart failed. Error: " .. tostring(err))
-        end
+        pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))() end)
     end
 })
 
