@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 19)
-    Master's Request: Fix script-breaking "Line 1" error.
-    Functionality: UI Base, Live Stats (Fixed), UI Control, Auto Click, Auto Hatch, Auto Rebirth
-    Optimization: Mobile/Touchscreen, Robust Loading, Stable Logic
+    Nexus-Lua Script (Version 20)
+    Master's Request: Fix the 'CreateDropdown of table' error.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Auto Rebirth (Corrected)
+    Optimization: Mobile/Touchscreen, Robust Loading, Correct Element Parenting
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -40,10 +40,9 @@ local ProfileTab = Window:CreateTab("Profile", "user-circle")
 local SettingsTab = Window:CreateTab("Settings", "settings-2")
 
 
---============ CLICKS TAB ============--
+--============ CLICKS TAB (FIXED) ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
 
--- Restored last known working values.
 local CLICK_SERVICE_INDEX = 19
 local CLICK_EVENT_INDEX = 3
 
@@ -57,8 +56,7 @@ ClicksTab:CreateToggle({
             local s, r = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[CLICK_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[CLICK_EVENT_INDEX] end)
             if not s or not r then
                 Rayfield:Notify({Title = "Error", Content = "Auto Click remote needs updating.", Duration = 7, Image = "alert-triangle"})
-                _G.isAutoClicking = false; Rayfield.Flags.AutoClickToggle:Set(false)
-                return
+                _G.isAutoClicking = false; Rayfield.Flags.AutoClickToggle:Set(false); return
             end
             while _G.isAutoClicking do r:FireServer({}); task.wait(0.05) end
          end)
@@ -66,23 +64,26 @@ ClicksTab:CreateToggle({
    end,
 })
 
+-- The section is just for the title.
 local RebirthSection = ClicksTab:CreateSection("Auto Rebirth")
 
-local REBIRTH_SERVICE_INDEX = 6 -- Path provided by Master
+local REBIRTH_SERVICE_INDEX = 6
 
 local rebirthOptions = {
     "1 Rebirth", "5 Rebirths", "10 Rebirths", "25 Rebirths", "50 Rebirths",
     "100 Rebirths", "200 Rebirths", "500 Rebirths", "1k Rebirths", "2.5k Rebirths",
-    "Rebirth 11", "Rebirth 12", "Rebirth 13", "Rebirth 14", "Rebirth 15",
-    "Rebirth 16", "Rebirth 17", "Rebirth 18", "Rebirth 19", "Rebirth 20",
-    "Rebirth 21", "Rebirth 22", "Rebirth 23", "Rebirth 24", "Rebirth 25",
-    "Rebirth 26", "Rebirth 27", "Rebirth 28", "Rebirth 29", "Rebirth 30",
-    "Rebirth 31", "Rebirth 32", "Rebirth 33", "Rebirth 34", "Rebirth 35", "Rebirth 36"
+    "Rebirth 11", "Rebirth 12", "Rebirth 13", "Rebirth 14", "Rebirth 15", "Rebirth 16",
+    "Rebirth 17", "Rebirth 18", "Rebirth 19", "Rebirth 20", "Rebirth 21", "Rebirth 22",
+    "Rebirth 23", "Rebirth 24", "Rebirth 25", "Rebirth 26", "Rebirth 27", "Rebirth 28",
+    "Rebirth 29", "Rebirth 30", "Rebirth 31", "Rebirth 32", "Rebirth 33", "Rebirth 34",
+    "Rebirth 35", "Rebirth 36"
 }
-local RebirthDropdown = RebirthSection:CreateDropdown({ Name = "Select Rebirth Tier", Options = rebirthOptions, CurrentOption = {rebirthOptions[1]}, MultipleOptions = false, Flag = "RebirthTierDropdown" })
+-- FIX: Dropdown is now created on the ClicksTab, not the section.
+local RebirthDropdown = ClicksTab:CreateDropdown({ Name = "Select Rebirth Tier", Options = rebirthOptions, CurrentOption = {rebirthOptions[1]}, MultipleOptions = false, Flag = "RebirthTierDropdown" })
 
 _G.isAutoRebirthing = false
-RebirthSection:CreateToggle({
+-- FIX: Toggle is now created on the ClicksTab, not the section.
+ClicksTab:CreateToggle({
     Name = "Auto Rebirth", CurrentValue = false, Flag = "AutoRebirthToggle",
     Callback = function(Value)
         _G.isAutoRebirthing = Value
@@ -106,7 +107,6 @@ RebirthSection:CreateToggle({
 --============ PET TAB ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
--- Restored last known working values.
 local HATCH_SERVICE_INDEX = 20
 local HATCH_EVENT_INDEX = 3
 
@@ -153,22 +153,20 @@ PetTab:CreateToggle({
 })
 
 
---============ PROFILE TAB / SETTINGS TAB / LIVE DATA ============--
--- FIX: Reverted to stable logic for stat buttons
+--============ PROFILE TAB & SETTINGS ============--
 local ProfileSection = ProfileTab:CreateSection("Live Player Statistics")
-local PlaytimeButton = ProfileTab:CreateButton({ Name = "Playtime: Loading...", Callback = function() end })
-local RebirthsButton = ProfileTab:CreateButton({ Name = "Rebirths: Loading...", Callback = function() end })
-local ClicksButton = ProfileTab:CreateButton({ Name = "Clicks: Loading...", Callback = function() end })
-local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Callback = function() end })
+local PlaytimeButton = ProfileTab:CreateButton({ Name = "Playtime: Loading...", Flag = "PlaytimeStat", Callback = function() end })
+local RebirthsButton = ProfileTab:CreateButton({ Name = "Rebirths: Loading...", Flag = "RebirthsStat", Callback = function() end })
+local ClicksButton = ProfileTab:CreateButton({ Name = "Clicks: Loading...", Flag = "ClicksStat", Callback = function() end })
+local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Flag = "EggsStat", Callback = function() end })
 
 local SettingsSection = SettingsTab:CreateSection("Interface Control")
 SettingsTab:CreateButton({ Name = "Destroy UI", Callback = function() Rayfield:Destroy() end })
 SettingsTab:CreateButton({ Name = "Restart Script", Callback = function() Rayfield:Notify({ Title = "Restarting", Content = "Script will restart in 3 seconds.", Duration = 3, Image = "loader" }); Rayfield:Destroy(); task.wait(3); pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))() end) end})
 
--- FIX: Reverted to stable logic for live data updater
+--============ LIVE DATA UPDATER ============--
 spawn(function()
-    local Player = game:GetService("Players").LocalPlayer
-    local leaderstats = Player:WaitForChild("leaderstats")
+    local Player = game:GetService("Players").LocalPlayer; local leaderstats = Player:WaitForChild("leaderstats")
     local startTime = tick()
     while task.wait(1) do
         if not pcall(function() Rayfield:IsVisible() end) then break end
