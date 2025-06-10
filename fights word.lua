@@ -5,7 +5,6 @@ local p,rs,lp,ws = game:GetService("Players"), game:GetService("ReplicatedStorag
 local isAT, isAH = false, false;
 local liveEggData = {}; -- Stores live data: { ["Draw001"] = { Req = 5, Index = 1 }, ... }
 local eggDisplayNameMap = {}; -- Maps display name to ID for easy lookup
-local selectedHatchID = nil; -- Single source of truth for the selected egg ID
 
 -- Data Tables
 local nS = {k=1e3,m=1e6,b=1e9,t=1e12,qa=1e15,qi=1e18,sx=1e21,sp=1e24,oc=1e27,no=1e30};
@@ -50,7 +49,7 @@ end end end; task.wait(0.1) else task.wait(1) end end end);
 
 -- Pet Tab
 PT:CreateSection("Auto Hatch & Delete");
-local EID; -- Pre-declare to solve scope issue
+local EID; -- Pre-declare for reference
 PT:CreateButton({Name = "Refresh", Callback = function()
     local hatchGuis = lp.PlayerGui:FindFirstChild("HatchGuis")
     if not hatchGuis then RF:Notify({Title="Scan Failed",Content="HatchGuis not found.",Duration=5,Image="x-circle"}); return end
@@ -66,33 +65,30 @@ PT:CreateButton({Name = "Refresh", Callback = function()
     end
     if EID then
         if #eggOptions > 0 then
-            local currentSelection = EID.CurrentOption and EID.CurrentOption[1] or nil
-            EID:Refresh(eggOptions);
+            local currentSelection = EID.CurrentOption and EID.CurrentOption[1] or nil; EID:Refresh(eggOptions);
             if currentSelection and table.find(eggOptions, currentSelection) then EID:Set({currentSelection}) end
             RF:Notify({Title="Scan Complete",Content="Found "..#eggOptions.." nearby eggs.",Duration=5,Image="check-circle"})
-        else
-            EID:Refresh({}); RF:Notify({Title="Scan Complete",Content="No eggs found nearby.",Duration=5,Image="search"})
-        end
+        else EID:Refresh({}); RF:Notify({Title="Scan Complete",Content="No eggs found nearby.",Duration=5,Image="search"}) end
     end
 end});
-EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function(selected) selectedHatchID = eggDisplayNameMap[selected[1]] end});
+EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function()end});
 local AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None","Pet 1","Pet 2","Pet 3","Pet 4"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
-PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; if V and EID.CurrentOption[1] then selectedHatchID = eggDisplayNameMap[EID.CurrentOption[1]] end; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
+PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
 
 task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("leaderstats"); local wS=l and l:FindFirstChild("\240\159\143\134Wins"); if wS then
-    if selectedHatchID and liveEggData[selectedHatchID] then
-        local selectedEggData = liveEggData[selectedHatchID]
-        if wS.Value >= selectedEggData.Req then
-            local deleteList = {};
-            local startPetId = (selectedEggData.Index - 1) * 4 + 1;
-            for _, nickname in ipairs(AutoDeleteDropdown.CurrentOption) do
-                local petIndex = tonumber(nickname:match("%d+"));
-                if petIndex then
-                    local actualId = string.format("Pet%03d", startPetId + petIndex - 1);
-                    table.insert(deleteList, actualId);
+    local currentEggName = EID.CurrentOption[1]
+    if currentEggName then
+        local selectedHatchID = eggDisplayNameMap[currentEggName]
+        if selectedHatchID and liveEggData[selectedHatchID] then
+            local selectedEggData = liveEggData[selectedHatchID]
+            if wS.Value >= selectedEggData.Req then
+                local deleteList = {}; local startPetId = (selectedEggData.Index - 1) * 4 + 1;
+                for _, nickname in ipairs(AutoDeleteDropdown.CurrentOption) do
+                    local petIndex = tonumber(nickname:match("%d+"));
+                    if petIndex then local actualId = string.format("Pet%03d", startPetId + petIndex - 1); table.insert(deleteList, actualId); end
                 end
+                rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedHatchID, deleteList);
             end
-            rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedHatchID, deleteList);
         end
     end
 end; task.wait(0.1) else task.wait(1) end end end);
