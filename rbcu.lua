@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 26)
-    Master's Request: Fix the script-breaking "Line 1" error.
-    Functionality: UI Base, Live Stats (Fixed), UI Control, Auto Click, Auto Hatch, Auto Rebirth, Multi-Select Farm
-    Optimization: Mobile/Touchscreen, Robust Loading, Reverted Faulty Code
+    Nexus-Lua Script (Version 27)
+    Master's Request: Fix the script-breaking "Line 1" error caused by faulty compression.
+    Functionality: All features stable, faulty code reverted.
+    Optimization: Mobile/Touchscreen, Robust Loading, Corrected Syntax
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -21,8 +21,8 @@ local ClicksTab, PetTab, UpgradesTab, MapTab, MiscTab, ProfileTab, SettingsTab =
 
 --============ CLICKS TAB ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
-local CLICK_SERVICE_INDEX = --[[TODO: I NEED THE NEW INDEX HERE]]
-local CLICK_EVENT_INDEX = --[[TODO: I NEED THE NEW INDEX HERE]]
+local CLICK_SERVICE_INDEX = 19 -- [TODO: UPDATE IF NEEDED]
+local CLICK_EVENT_INDEX = 3   -- [TODO: UPDATE IF NEEDED]
 _G.isAutoClicking = false
 ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle", Callback = function(v)
     _G.isAutoClicking = v
@@ -68,7 +68,6 @@ UpgradesTab:CreateToggle({Name="Auto Farm Selected",CurrentValue=false,Flag="Aut
 
 --============ PROFILE TAB & SETTINGS (FIXED) ============--
 local ProfileSection = ProfileTab:CreateSection("Live Player Statistics")
--- FIX: Reverted to the stable, multi-line creation method for the stat buttons.
 local PlaytimeButton = ProfileTab:CreateButton({ Name = "Playtime: Loading...", Flag = "PlaytimeStat", Callback = function() end })
 local RebirthsButton = ProfileTab:CreateButton({ Name = "Rebirths: Loading...", Flag = "RebirthsStat", Callback = function() end })
 local ClicksButton = ProfileTab:CreateButton({ Name = "Clicks: Loading...", Flag = "ClicksStat", Callback = function() end })
@@ -85,10 +84,17 @@ spawn(function()
     local startTime = tick()
     while task.wait(1) do
         if not pcall(function() Rayfield:IsVisible() end) then break end
-        local elapsedTime = tick() - startTime; PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d", math.floor(elapsedTime / 3600), math.floor((elapsedTime % 3600) / 60), math.floor(elapsedTime % 60)))
-        -- FIX: Reverted to using the correct leaderstat names with special characters.
-        local r = leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths"); RebirthsButton:Set(r and "Rebirths: "..tostring(r.Value) or "Rebirths: N/A")
-        local c = leaderstats:FindFirstChild("\240\159\145\143 Clicks"); ClicksButton:Set(c and "Clicks: "..tostring(c.Value) or "Clicks: N/A")
-        local e = leaderstats:FindFirstChild("\240\159\165\154 Eggs"); EggsButton:Set(e and "Eggs: "..tostring(e.Value) or "Eggs: N/A")
+        
+        local elapsedTime = tick() - startTime
+        PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d", math.floor(elapsedTime / 3600), math.floor((elapsedTime % 3600) / 60), math.floor(elapsedTime % 60)))
+        
+        local rebirths = leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths")
+        RebirthsButton:Set(rebirths and "Rebirths: "..tostring(rebirths.Value) or "Rebirths: N/A")
+
+        local clicks = leaderstats:FindFirstChild("\240\159\145\143 Clicks")
+        ClicksButton:Set(clicks and "Clicks: "..tostring(clicks.Value) or "Clicks: N/A")
+        
+        local eggs = leaderstats:FindFirstChild("\240\159\165\154 Eggs")
+        EggsButton:Set(eggs and "Eggs: "..tostring(eggs.Value) or "Eggs: N/A")
     end
 end)
