@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 4)
-    Master's Request: Add an Auto Click toggle.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click Farm
+    Nexus-Lua Script (Version 5)
+    Master's Request: Fix script loading error.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click Farm (Corrected)
     Optimization: Mobile/Touchscreen, Robust Loading
 ]]
 
@@ -50,33 +50,36 @@ local SettingsTab = Window:CreateTab("Settings", "settings-2")
 --============ CLICKS TAB ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
 
--- This variable will control the auto-clicking loop
 _G.isAutoClicking = false
 
 ClicksTab:CreateToggle({
    Name = "Auto Click",
    CurrentValue = false,
-   Flag = "AutoClickToggle", -- Unique flag for config saving
+   Flag = "AutoClickToggle",
    Callback = function(Value)
       _G.isAutoClicking = Value
       
       if Value then
          task.spawn(function()
-            -- Define the remote once to avoid repeatedly searching for it
-            local clickRemote = --[[TODO: I NEED THE PATH HERE]]
-            local success, remote = pcall(function()
+            -- Find the remote event for clicking
+            local success, clickRemote = pcall(function()
                 return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[19]:WaitForChild("RE"):GetChildren()[3]
             end)
             
-            if not success or not remote then
-                Rayfield:Notify({Title = "Error", Content = "Auto Click remote not found.", Duration = 5})
-                _G.isAutoClicking = false
-                return -- Stop the function if the remote doesn't exist
+            if not success or not clickRemote then
+                Rayfield:Notify({Title = "Error", Content = "Auto Click remote not found.", Duration = 5, Image = "alert-triangle"})
+                _G.isAutoClicking = false -- Turn the master switch off
+                -- This is a failsafe and should not be needed, but good practice
+                local toggle = Rayfield.Flags.AutoClickToggle
+                if toggle then
+                    toggle:Set(false)
+                end
+                return
             end
             
             local args = {}
             while _G.isAutoClicking do
-                remote:FireServer(unpack(args))
+                clickRemote:FireServer(unpack(args))
                 task.wait(0.05)
             end
          end)
@@ -112,7 +115,7 @@ spawn(function()
     local startTime = tick()
 
     while task.wait(1) do
-        if not pcall(function() RebirthsButton:Set(" ") end) then break end
+        if not pcall(function() Rayfield:IsVisible() end) then break end
 
         local elapsedTime = tick() - startTime
         local hours = math.floor(elapsedTime / 3600)
