@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 21)
-    Master's Request: Final fix for the persistent 'CreateDropdown' error.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Auto Rebirth (Stable)
-    Optimization: Mobile/Touchscreen, Robust Loading, Corrected Logic
+    Nexus-Lua Script (Version 22)
+    Master's Request: Implement a multi-select Auto Upgrade feature.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Auto Rebirth, Auto Upgrade
+    Optimization: Mobile/Touchscreen, Robust Loading, Multi-Select Logic
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -42,59 +42,94 @@ local SettingsTab = Window:CreateTab("Settings", "settings-2")
 
 --============ CLICKS TAB ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
-
-local CLICK_SERVICE_INDEX = 19
-local CLICK_EVENT_INDEX = 3
-
+local CLICK_SERVICE_INDEX = 19; local CLICK_EVENT_INDEX = 3
 _G.isAutoClicking = false
-ClicksTab:CreateToggle({
-   Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle",
-   Callback = function(Value)
-      _G.isAutoClicking = Value
-      if Value then
-         task.spawn(function()
-            local s, r = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[CLICK_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[CLICK_EVENT_INDEX] end)
-            if not s or not r then
-                Rayfield:Notify({Title = "Error", Content = "Auto Click remote needs updating.", Duration = 7, Image = "alert-triangle"})
-                _G.isAutoClicking = false; Rayfield.Flags.AutoClickToggle:Set(false); return
-            end
-            while _G.isAutoClicking do r:FireServer({}); task.wait(0.05) end
-         end)
-      end
-   end,
+ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle", Callback = function(Value)
+    _G.isAutoClicking = Value
+    if Value then task.spawn(function()
+        local s, r = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[CLICK_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[CLICK_EVENT_INDEX] end)
+        if not s or not r then Rayfield:Notify({Title = "Error", Content = "Auto Click remote needs updating.", Duration = 7, Image = "alert-triangle"}); _G.isAutoClicking = false; Rayfield.Flags.AutoClickToggle:Set(false); return end
+        while _G.isAutoClicking do r:FireServer({}); task.wait(0.05) end
+    end) end
+end})
+
+local RebirthSection = ClicksTab:CreateSection("Auto Rebirth")
+local REBIRTH_SERVICE_INDEX = 6
+local rebirthOptions = { "1 Rebirth", "5 Rebirths", "10 Rebirths", "25 Rebirths", "50 Rebirths", "100 Rebirths", "200 Rebirths", "500 Rebirths", "1k Rebirths", "2.5k Rebirths", "Rebirth 11", "Rebirth 12", "Rebirth 13", "Rebirth 14", "Rebirth 15", "Rebirth 16", "Rebirth 17", "Rebirth 18", "Rebirth 19", "Rebirth 20", "Rebirth 21", "Rebirth 22", "Rebirth 23", "Rebirth 24", "Rebirth 25", "Rebirth 26", "Rebirth 27", "Rebirth 28", "Rebirth 29", "Rebirth 30", "Rebirth 31", "Rebirth 32", "Rebirth 33", "Rebirth 34", "Rebirth 35", "Rebirth 36" }
+local RebirthDropdown = ClicksTab:CreateDropdown({ Name = "Select Rebirth Tier", Options = rebirthOptions, CurrentOption = {rebirthOptions[1]}, MultipleOptions = false, Flag = "RebirthTierDropdown" })
+_G.isAutoRebirthing = false
+ClicksTab:CreateToggle({ Name = "Auto Rebirth", CurrentValue = false, Flag = "AutoRebirthToggle", Callback = function(Value)
+    _G.isAutoRebirthing = Value
+    if Value then task.spawn(function()
+        local s, rF = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[REBIRTH_SERVICE_INDEX]:WaitForChild("RF"):WaitForChild("jag känner en bot, hon heter anna, anna heter hon") end)
+        if not s or not rF then Rayfield:Notify({Title = "Error", Content = "Rebirth remote needs updating.", Duration = 7, Image = "alert-triangle"}); _G.isAutoRebirthing = false; Rayfield.Flags.AutoRebirthToggle:Set(false); return end
+        while _G.isAutoRebirthing do local tierId = table.find(rebirthOptions, RebirthDropdown.CurrentOption[1]); if tierId then pcall(rF.InvokeServer, rF, tierId); task.wait(0.5) end end
+    end) end
+end})
+
+
+--============ PET TAB ============--
+local PetSection = PetTab:CreateSection("Auto Hatch")
+local HATCH_SERVICE_INDEX = 20; local HATCH_EVENT_INDEX = 3
+local function getEggNames() local eggNames = {}; local maps = workspace.Game.Maps; for _, map in pairs(maps:GetChildren()) do if map:IsA("Folder") and map:FindFirstChild("Eggs") then for _, egg in pairs(map.Eggs:GetChildren()) do if egg:IsA("Model") then table.insert(eggNames, egg.Name) end end end end; table.sort(eggNames); return eggNames end
+local allEggNames = getEggNames(); if #allEggNames == 0 then table.insert(allEggNames, "No Eggs Found") end
+local EggDropdown = PetTab:CreateDropdown({ Name = "Select Egg", Options = allEggNames, CurrentOption = {allEggNames[1]}, MultipleOptions = false, Flag = "EggNameDropdown" })
+_G.isAutoHatching = false
+local AutoHatchStatusButton = PetTab:CreateButton({Name = "Status: Idle", Callback = function() end})
+PetTab:CreateToggle({ Name = "Auto Hatch Selected Egg (x3)", CurrentValue = false, Flag = "AutoHatchToggle", Callback = function(Value)
+    _G.isAutoHatching = Value
+    if Value then task.spawn(function()
+        local s, hR = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[HATCH_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[HATCH_EVENT_INDEX] end)
+        if not s or not hR then Rayfield:Notify({Title = "Error", Content = "Hatching remote needs updating.", Duration = 7, Image = "alert-circle"}); _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); return end
+        while _G.isAutoHatching do local selected = EggDropdown.CurrentOption[1]; if selected and selected ~= "No Eggs Found" then AutoHatchStatusButton:Set("Status: Hatching " .. selected); pcall(hR.FireServer, hR, selected, 2); task.wait(0.05) else AutoHatchStatusButton:Set("Status: No egg selected"); _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break end end; AutoHatchStatusButton:Set("Status: Idle")
+    end) else AutoHatchStatusButton:Set("Status: Idle") end
+end})
+
+
+--============ UPGRADES TAB ============--
+local UpgradeSection = UpgradesTab:CreateSection("Auto Upgrade")
+
+local UPGRADE_SERVICE_INDEX = 15 -- Path provided by Master
+
+local function getUpgradeNames()
+    local upgradeNames = {}
+    local upgradeHolder = game:GetService("StarterGui"):WaitForChild("MainUI", 5):WaitForChild("Menus", 5):WaitForChild("UpgradesFrame", 5):WaitForChild("Main", 5):WaitForChild("List", 5):WaitForChild("Holder", 5):WaitForChild("Upgrades", 5)
+    if upgradeHolder then
+        for _, upgradeItem in pairs(upgradeHolder:GetChildren()) do
+            if upgradeItem:IsA("Frame") then table.insert(upgradeNames, upgradeItem.Name) end
+        end
+    end
+    return upgradeNames
+end
+
+local allUpgradeNames = getUpgradeNames()
+if #allUpgradeNames == 0 then table.insert(allUpgradeNames, "No Upgrades Found") end
+
+local UpgradeDropdown = UpgradesTab:CreateDropdown({
+    Name = "Select Upgrades", Options = allUpgradeNames, MultipleOptions = true, Flag = "UpgradeSelectionDropdown"
 })
 
--- FIX: The entire rebirth section has been rewritten to be stable.
-local RebirthSection = ClicksTab:CreateSection("Auto Rebirth")
-
-local REBIRTH_SERVICE_INDEX = 6
-
-local rebirthOptions = {
-    "1 Rebirth", "5 Rebirths", "10 Rebirths", "25 Rebirths", "50 Rebirths",
-    "100 Rebirths", "200 Rebirths", "500 Rebirths", "1k Rebirths", "2.5k Rebirths",
-    "Rebirth 11", "Rebirth 12", "Rebirth 13", "Rebirth 14", "Rebirth 15", "Rebirth 16",
-    "Rebirth 17", "Rebirth 18", "Rebirth 19", "Rebirth 20", "Rebirth 21", "Rebirth 22",
-    "Rebirth 23", "Rebirth 24", "Rebirth 25", "Rebirth 26", "Rebirth 27", "Rebirth 28",
-    "Rebirth 29", "Rebirth 30", "Rebirth 31", "Rebirth 32", "Rebirth 33", "Rebirth 34",
-    "Rebirth 35", "Rebirth 36"
-}
-local RebirthDropdown = ClicksTab:CreateDropdown({ Name = "Select Rebirth Tier", Options = rebirthOptions, CurrentOption = {rebirthOptions[1]}, MultipleOptions = false, Flag = "RebirthTierDropdown" })
-
-_G.isAutoRebirthing = false
-ClicksTab:CreateToggle({
-    Name = "Auto Rebirth", CurrentValue = false, Flag = "AutoRebirthToggle",
+_G.isAutoUpgrading = false
+UpgradesTab:CreateToggle({
+    Name = "Auto Upgrade Selected", CurrentValue = false, Flag = "AutoUpgradeToggle",
     Callback = function(Value)
-        _G.isAutoRebirthing = Value
+        _G.isAutoUpgrading = Value
         if Value then
             task.spawn(function()
-                local s, rF = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[REBIRTH_SERVICE_INDEX]:WaitForChild("RF"):WaitForChild("jag känner en bot, hon heter anna, anna heter hon") end)
-                if not s or not rF then
-                    Rayfield:Notify({Title = "Error", Content = "Rebirth remote needs updating.", Duration = 7, Image = "alert-triangle"})
-                    _G.isAutoRebirthing = false; Rayfield.Flags.AutoRebirthToggle:Set(false); return
+                local s, uRF = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[UPGRADE_SERVICE_INDEX]:WaitForChild("RF"):WaitForChild("jag känner en bot, hon heter anna, anna heter hon") end)
+                if not s or not uRF then
+                    Rayfield:Notify({Title = "Error", Content = "Upgrade remote needs updating.", Duration = 7, Image = "alert-triangle"})
+                    _G.isAutoUpgrading = false; Rayfield.Flags.AutoUpgradeToggle:Set(false); return
                 end
-                while _G.isAutoRebirthing do
-                    local tierId = table.find(rebirthOptions, RebirthDropdown.CurrentOption[1])
-                    if tierId then pcall(rF.InvokeServer, rF, tierId); task.wait(0.5) end
+                while _G.isAutoUpgrading do
+                    if #UpgradeDropdown.CurrentOption > 0 then
+                        for _, upgradeName in ipairs(UpgradeDropdown.CurrentOption) do
+                            pcall(uRF.InvokeServer, uRF, upgradeName)
+                            task.wait(0.2) -- A safe delay between each upgrade attempt in the selection
+                            if not _G.isAutoUpgrading then break end -- Stop if toggle is turned off mid-loop
+                        end
+                    end
+                    task.wait(0.5) -- Wait before re-checking the entire list
                 end
             end)
         end
@@ -102,58 +137,8 @@ ClicksTab:CreateToggle({
 })
 
 
---============ PET TAB ============--
-local PetSection = PetTab:CreateSection("Auto Hatch")
-
-local HATCH_SERVICE_INDEX = 20
-local HATCH_EVENT_INDEX = 3
-
-local function getEggNames()
-    local eggNames = {}; local maps = workspace.Game.Maps
-    for _, map in pairs(maps:GetChildren()) do
-        if map:IsA("Folder") and map:FindFirstChild("Eggs") then
-            for _, egg in pairs(map.Eggs:GetChildren()) do if egg:IsA("Model") then table.insert(eggNames, egg.Name) end end
-        end
-    end
-    table.sort(eggNames); return eggNames
-end
-
-local allEggNames = getEggNames()
-if #allEggNames == 0 then table.insert(allEggNames, "No Eggs Found") end
-
-local EggDropdown = PetTab:CreateDropdown({ Name = "Select Egg", Options = allEggNames, CurrentOption = {allEggNames[1]}, MultipleOptions = false, Flag = "EggNameDropdown" })
-_G.isAutoHatching = false
-local AutoHatchStatusButton = PetTab:CreateButton({Name = "Status: Idle", Callback = function() end})
-
-PetTab:CreateToggle({
-   Name = "Auto Hatch Selected Egg (x3)", CurrentValue = false, Flag = "AutoHatchToggle",
-   Callback = function(Value)
-      _G.isAutoHatching = Value
-      if Value then
-         task.spawn(function()
-            local s, hR = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[HATCH_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[HATCH_EVENT_INDEX] end)
-            if not s or not hR then
-                Rayfield:Notify({Title = "Error", Content = "Hatching remote needs updating.", Duration = 7, Image = "alert-circle"})
-                _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); return
-            end
-            while _G.isAutoHatching do
-                local selected = EggDropdown.CurrentOption[1]
-                if selected and selected ~= "No Eggs Found" then
-                    AutoHatchStatusButton:Set("Status: Hatching " .. selected)
-                    pcall(hR.FireServer, hR, selected, 2) ; task.wait(0.05)
-                else
-                    AutoHatchStatusButton:Set("Status: No egg selected"); _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
-                end
-            end; AutoHatchStatusButton:Set("Status: Idle")
-         end)
-      else AutoHatchStatusButton:Set("Status: Idle") end
-   end,
-})
-
-
 --============ PROFILE TAB & SETTINGS ============--
 local ProfileSection = ProfileTab:CreateSection("Live Player Statistics")
--- FIX: Added the correct flags to the stat buttons
 local PlaytimeButton = ProfileTab:CreateButton({ Name = "Playtime: Loading...", Flag = "PlaytimeStat", Callback = function() end })
 local RebirthsButton = ProfileTab:CreateButton({ Name = "Rebirths: Loading...", Flag = "RebirthsStat", Callback = function() end })
 local ClicksButton = ProfileTab:CreateButton({ Name = "Clicks: Loading...", Flag = "ClicksStat", Callback = function() end })
