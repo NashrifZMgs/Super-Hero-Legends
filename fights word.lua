@@ -50,33 +50,32 @@ end end end; task.wait(0.1) else task.wait(1) end end end);
 
 -- Pet Tab
 PT:CreateSection("Auto Hatch & Delete");
+local EID; -- Pre-declare to solve scope issue
 PT:CreateButton({Name = "Refresh", Callback = function()
     local hatchGuis = lp.PlayerGui:FindFirstChild("HatchGuis")
     if not hatchGuis then RF:Notify({Title="Scan Failed",Content="HatchGuis not found.",Duration=5,Image="x-circle"}); return end
-    
-    liveEggData = {}
-    eggDisplayNameMap = {}
-    local eggOptions = {}
-    
+    liveEggData = {}; eggDisplayNameMap = {}; local eggOptions = {};
     for i, eggMeta in ipairs(ED_Metadata) do
         local ui = hatchGuis:FindFirstChild(eggMeta.ID)
         if ui and ui.Enabled then
             local req = eggMeta.Req; local reqString;
             if req>=1e30 then reqString=string.format("%.2fno",req/1e30)elseif req>=1e27 then reqString=string.format("%.2foc",req/1e27)elseif req>=1e24 then reqString=string.format("%.2fsp",req/1e24)elseif req>=1e21 then reqString=string.format("%.2fsx",req/1e21)elseif req>=1e18 then reqString=string.format("%.2fqi",req/1e18)elseif req>=1e15 then reqString=string.format("%.2fqa",req/1e15)elseif req>=1e12 then reqString=string.format("%.2ft",req/1e12)elseif req>=1e9 then reqString=string.format("%.2fb",req/1e9)elseif req>=1e6 then reqString=string.format("%.2fm",req/1e6)elseif req>=1e3 then reqString=string.format("%.2fk",req/1e3)else reqString=tostring(req)end
-            local displayName = "Egg "..i.." ("..reqString:gsub("%.00","").." Wins)"
-            table.insert(eggOptions, displayName)
-            liveEggData[eggMeta.ID] = {Req = req, Index = i}
-            eggDisplayNameMap[displayName] = eggMeta.ID
+            local displayName = "Egg "..i.." ("..reqString:gsub("%.00","").." Wins)"; table.insert(eggOptions, displayName);
+            liveEggData[eggMeta.ID] = {Req = req, Index = i}; eggDisplayNameMap[displayName] = eggMeta.ID;
         end
     end
-    
-    if #eggOptions > 0 then
-        EID:Refresh(eggOptions); RF:Notify({Title="Scan Complete",Content="Found "..#eggOptions.." nearby eggs.",Duration=5,Image="check-circle"})
-    else
-        EID:Refresh({}); RF:Notify({Title="Scan Complete",Content="No eggs found nearby.",Duration=5,Image="search"})
+    if EID then
+        if #eggOptions > 0 then
+            local currentSelection = EID.CurrentOption and EID.CurrentOption[1] or nil
+            EID:Refresh(eggOptions);
+            if currentSelection and table.find(eggOptions, currentSelection) then EID:Set({currentSelection}) end
+            RF:Notify({Title="Scan Complete",Content="Found "..#eggOptions.." nearby eggs.",Duration=5,Image="check-circle"})
+        else
+            EID:Refresh({}); RF:Notify({Title="Scan Complete",Content="No eggs found nearby.",Duration=5,Image="search"})
+        end
     end
 end});
-local EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function(selected) selectedHatchID = eggDisplayNameMap[selected[1]] end});
+EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function(selected) selectedHatchID = eggDisplayNameMap[selected[1]] end});
 local AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None","Pet 1","Pet 2","Pet 3","Pet 4"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
 PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; if V and EID.CurrentOption[1] then selectedHatchID = eggDisplayNameMap[EID.CurrentOption[1]] end; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
 
