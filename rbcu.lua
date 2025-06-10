@@ -1,19 +1,19 @@
 --[[
-    Nexus-Lua Script (Version 2)
-    Master's Request: Fix script based on error logs.
-    Functionality: UI Base, Live Stats Display, UI Control, Error Handling
+    Nexus-Lua Script (Version 3)
+    Master's Request: Fix script based on new error logs.
+    Functionality: UI Base, Live Stats Display, UI Control, Corrected Loading
     Optimization: Mobile/Touchscreen, Robust Loading
 ]]
 
--- A more stable way to load the Rayfield library
-local Rayfield, status = pcall(function()
+-- A more stable way to load the Rayfield library, with corrected variable assignment
+local status, Rayfield = pcall(function()
     return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 end)
 
 -- Check if the library loaded correctly. If not, stop the script and inform the user.
 if not status or not Rayfield then
     warn("Nexus-Lua: CRITICAL ERROR - The Rayfield UI library failed to load.")
-    warn("This is often an issue with the mobile executor. Please try restarting or using a different executor.")
+    warn("This can be an issue with your executor or internet connection. Please try again.")
     return -- Stops the script from running further to prevent more errors
 end
 
@@ -25,7 +25,7 @@ end)
 -- If fetching the name fails, use a default name
 local windowTitle = success and gameName or "Game Hub"
 
--- Create the main window
+-- Create the main window. This will now work correctly.
 local Window = Rayfield:CreateWindow({
    Name = windowTitle,
    LoadingTitle = "Nexus-Lua Interface",
@@ -44,7 +44,6 @@ local UpgradesTab = Window:CreateTab("Upgrades", "arrow-up-circle")
 local MapTab = Window:CreateTab("Map", "map")
 local MiscTab = Window:CreateTab("Misc", "package")
 local ProfileTab = Window:CreateTab("Profile", "user-circle")
--- Corrected typo from 'Create-Tab' to 'CreateTab'
 local SettingsTab = Window:CreateTab("Settings", "settings-2")
 
 
