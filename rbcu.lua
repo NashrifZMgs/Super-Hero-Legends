@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 8)
-    Master's Request: Address the "hatching remote not found" error.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Improved Pathing)
-    Optimization: Mobile/Touchscreen, Robust Loading, Easily-Updated Variables
+    Nexus-Lua Script (Version 9)
+    Master's Request: Update the script with the new hatching remote path.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Path Fixed)
+    Optimization: Mobile/Touchscreen, Robust Loading, Stable Remote Pathing
 ]]
 
 -- A more stable way to load the Rayfield library, with corrected variable assignment
@@ -77,20 +77,11 @@ ClicksTab:CreateToggle({
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
 --[[
-    MASTER, ATTENTION:
-    The numbers below are the cause of the "remote not found" error.
-    Game updates change the order of things. Use your explorer tool to find the new
-    numerical index for the Hatching Service and the Hatching Remote Event, then
-    update the numbers in the two variables below.
+    MASTER, ATTENTION: If "No Eggs Found" persists, the path below may have changed.
 ]]
-local HATCH_SERVICE_INDEX = 20 -- [TODO: I MAY NEED THE NEW INDEX NUMBER FOR THE HATCHING SERVICE HERE]
-local HATCH_EVENT_INDEX = 3   -- [TODO: I MAY NEED THE NEW INDEX NUMBER FOR THE HATCHING EVENT HERE]
-
-
--- Function to find all eggs and their prices, then sort them
 local function getSortedEggList()
     local eggDataList = {}
-    local mapsFolder = workspace.Game.Maps
+    local mapsFolder = workspace.Game.Maps -- [TODO: I MAY NEED A NEW PATH TO THE MAPS FOLDER HERE]
     for _, mapInstance in pairs(mapsFolder:GetChildren()) do
         if mapInstance:FindFirstChild("Eggs") then
             for _, eggInstance in pairs(mapInstance.Eggs:GetChildren()) do
@@ -128,8 +119,8 @@ PetTab:CreateToggle({
       if Value then
          task.spawn(function()
             local success, hatchRemote = pcall(function()
-                -- Now using the variables from above to find the remote
-                return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[HATCH_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[HATCH_EVENT_INDEX]
+                -- Using the new, more stable path you provided.
+                return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon"):WaitForChild("RE"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon")
             end)
             if not success or not hatchRemote then
                 Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. Path may need updating.", Duration = 7, Image = "alert-circle"})
