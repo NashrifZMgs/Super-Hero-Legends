@@ -3,101 +3,127 @@ local p,rs,lp,ws = game:GetService("Players"), game:GetService("ReplicatedStorag
 
 -- Script State Variables
 local isAT, isAH = false, false;
-local liveEggData = {}; -- Stores live data: { ["Draw001"] = { Req = 5, Index = 1 }, ... }
-local eggDisplayNameMap = {}; -- Maps display name to ID for easy lookup
-
--- Data Tables
-local nS = {k=1e3,m=1e6,b=1e9,t=1e12,qa=1e15,qi=1e18,sx=1e21,sp=1e24,oc=1e27,no=1e30};
-local TD = {
-    ["World001"]={{R="TrainPower001",S=1},{R="TrainPower002",S=2e2},{R="TrainPower003",S=3e3},{R="TrainPower004",S=7.5e3},{R="TrainPower005",S=28e3},{R="TrainPower006",S=76e3}},["World002"]={{R="TrainPower008",S=1},{R="TrainPower009",S=363e3},{R="TrainPower010",S=820e3},{R="TrainPower011",S=1.99e6},{R="TrainPower012",S=3.98e6},{R="TrainPower013",S=9.1e6}},["World003"]={{R="TrainPower015",S=1},{R="TrainPower016",S=18.6e6},{R="TrainPower017",S=39e6},{R="TrainPower018",S=84.3e6},{R="TrainPower019",S=178e6},{R="TrainPower020",S=564e6}},["World004"]={{R="TrainPower022",S=1},{R="TrainPower023",S=1.1e9},{R="TrainPower024",S=1.91e9},{R="TrainPower025",S=3.66e9},{R="TrainPower026",S=7.21e9},{R="TrainPower027",S=14.7e9}},
-    ["World005"]={{R="TrainPower029",S=1},{R="TrainPower030",S=58.5e9},{R="TrainPower031",S=99.7e9},{R="TrainPower032",S=136e9},{R="TrainPower033",S=255e9},{R="TrainPower034",S=616e9}},["World006"]={{R="TrainPower036",S=1},{R="TrainPower037",S=959.6e9},{R="TrainPower038",S=1.55e12},{R="TrainPower039",S=2.58e12},{R="TrainPower040",S=3.87e12},{R="TrainPower041",S=6.94e12}},["World007"]={{R="TrainPower043",S=1},{R="TrainPower044",S=14.61e12},{R="TrainPower045",S=25.41e12},{R="TrainPower046",S=41.94e12},{R="TrainPower047",S=65.22e12},{R="TrainPower048",S=121.47e12}},["World008"]={{R="TrainPower050",S=1},{R="TrainPower051",S=258.29e12},{R="TrainPower052",S=392.93e12},{R="TrainPower053",S=687.95e12},{R="TrainPower054",S=1.38e15},{R="TrainPower055",S=2.65e15}},
-    ["World009"]={{R="TrainPower057",S=1},{R="TrainPower058",S=6.11e15},{R="TrainPower059",S=9.32e15},{R="TrainPower060",S=20.88e15},{R="TrainPower061",S=41.92e15},{R="TrainPower062",S=73.73e15}},["World010"]={{R="TrainPower064",S=392.93e12},{R="TrainPower065",S=10e15},{R="TrainPower066",S=20e15},{R="TrainPower067",S=30e15},{R="TrainPower068",S=50e15},{R="TrainPower069",S=100e15}},["World011"]={{R="TrainPower071",S=100e15},{R="TrainPower072",S=500e15},{R="TrainPower073",S=1e18},{R="TrainPower074",S=10e18},{R="TrainPower075",S=25e18},{R="TrainPower076",S=500e18}},["World012"]={{R="TrainPower078",S=100e15},{R="TrainPower079",S=500e15},{R="TrainPower080",S=1e18},{R="TrainPower081",S=10e18},{R="TrainPower082",S=25e18},{R="TrainPower083",S=500e18}},
-    ["World013"]={{R="TrainPower085",S=500e18},{R="TrainPower086",S=1e21},{R="TrainPower087",S=2e21},{R="TrainPower088",S=3e21},{R="TrainPower089",S=4e21},{R="TrainPower090",S=5e21}},["World014"]={{R="TrainPower092",S=10e21},{R="TrainPower093",S=15e21},{R="TrainPower094",S=20e21},{R="TrainPower095",S=30e21},{R="TrainPower096",S=40e21},{R="TrainPower097",S=50e21}},["World015"]={{R="TrainPower099",S=70e21},{R="TrainPower100",S=80e21},{R="TrainPower101",S=90e21},{R="TrainPower102",S=100e21},{R="TrainPower103",S=150e21},{R="TrainPower104",S=200e21}},["World016"]={{R="TrainPower106",S=150e21},{R="TrainPower107",S=200e21},{R="TrainPower108",S=251e21},{R="TrainPower109",S=252e21},{R="TrainPower110",S=253e21}}
-};
-local ED_Metadata = {
-    {ID="Draw001",Req=5},{ID="Draw002",Req=25},{ID="Draw003",Req=150},{ID="Draw004",Req=450},{ID="Draw005",Req=4e3},{ID="Draw006",Req=10e3},{ID="Draw007",Req=30e3},{ID="Draw008",Req=150e3},{ID="Draw009",Req=1.6e6},{ID="Draw010",Req=3.5e6},{ID="Draw011",Req=8e6},{ID="Draw012",Req=40e6},{ID="Draw013",Req=450e6},{ID="Draw014",Req=1e9},{ID="Draw015",Req=2e9},{ID="Draw016",Req=10e9},{ID="Draw017",Req=150e9},{ID="Draw018",Req=300e9},{ID="Draw019",Req=600e9},{ID="Draw020",Req=3e12},{ID="Draw021",Req=30e12},{ID="Draw022",Req=500e12},{ID="Draw023",Req=15e15},{ID="Draw024",Req=300e15},{ID="Draw025",Req=4.5e18},{ID="Draw026",Req=85e18},{ID="Draw027",Req=1e21},{ID="Draw028",Req=25e21},{ID="Draw029",Req=666e21},{ID="Draw030",Req=5e24},{ID="Draw031",Req=15e24},{ID="Draw032",Req=250e24},{ID="Draw033",Req=450e24},{ID="Draw034",Req=650e24},{ID="Draw035",Req=750e24},{ID="Draw036",Req=0.99e27},{ID="Draw037",Req=1.49e27},{ID="Draw038",Req=1.99e27},{ID="Draw039",Req=99.99e27},{ID="Draw040",Req=1e30},{ID="Draw041",Req=1.75e30},{ID="Draw042",Req=2.5e30}
-};
-local W_N_ID = {["Castle"]="World001",["Mushroom Forest"]="World002",["Desert Pyramid"]="World003",["Snow Land"]="World004",["Underwater"]="World005",["Alien Desert"]="World006",["Candy"]="World007",["Energy Factory"]="World008",["Altar"]="World009",["Demon King"]="World010",["Heavenly Gates"]="World011",["Halls of Valhalla"]="World012",["Voidfallen Kingdom"]="World013",["Realm of the Monkey King"]="World014",["The Fractal Fortress"]="World015",["The Timeless Cavern"]="World016"};
-local O_W_N = {"Castle","Mushroom Forest","Desert Pyramid","Snow Land","Underwater","Alien Desert","Candy","Energy Factory","Altar","Demon King","Heavenly Gates","Halls of Valhalla","Voidfallen Kingdom","Realm of the Monkey King","The Fractal Fortress","The Timeless Cavern"};
-local TL = {{Name="Castle",CFrame=CFrame.new(-355.025,108.44,-361.705,0,0,-1,0,1,0,1,0,0)},{Name="Mushroom Forest",CFrame=CFrame.new(-416.749,189.614,-2692.51,1,0,0,0,1,0,0,0,1)},{Name="Desert Pyramid",CFrame=CFrame.new(-390.099,14.414,-5540.87,1,0,0,0,1,0,0,0,1)},{Name="Snow Land",CFrame=CFrame.new(-400,219.814,-7700.34,1,0,0,0,1,0,0,0,1)},{Name="Underwater",CFrame=CFrame.new(-279.721,45.793,-10495.7,1,0,0,0,1,0,0,0,1)},{Name="Alien Desert",CFrame=CFrame.new(-369.141,106.533,-12073.5,1,0,0,0,1,0,0,0,1)},{Name="Candy",CFrame=CFrame.new(-364.411,107.393,-13334.5,1,0,0,0,1,0,0,0,1)},{Name="Energy Factory",CFrame=CFrame.new(-410.601,-20.657,-15130.6,1,0,0,0,1,0,0,0,1)},{Name="Altar",CFrame=CFrame.new(-519.031,-239.127,-17261.9,1,0,0,0,1,0,0,0,1)},{Name="Demon King",CFrame=CFrame.new(-519.031,-239.127,-19761.9,1,0,0,0,1,0,0,0,1)},{Name="Heavenly Gates",CFrame=CFrame.new(-763.321,-239.127,-21523.4,1,0,0,0,1,0,0,0,1)},{Name="Halls of Valhalla",CFrame=CFrame.new(-763.321,-239.127,-24418,1,0,0,0,1,0,0,0,1)},{Name="Voidfallen Kingdom",CFrame=CFrame.new(-763.321,-239.127,-27791.3,1,0,0,0,1,0,0,0,1)},{Name="Realm of the Monkey King",CFrame=CFrame.new(-763.321,-239.127,-29846.2,1,0,0,0,1,0,0,0,1)},{Name="The Fractal Fortress",CFrame=CFrame.new(-763.321,-239.127,-32819.3,1,0,0,0,1,0,0,0,1)},{Name="The Timeless Cavern",CFrame=CFrame.new(-416.749,189.614,-36787.8,1,0,0,0,1,0,0,0,1)}};
+local liveTrainData = {}; -- { ["World 1"] = { {RemoteName="TrainPower001", Req=100}, ... }, ... }
+local liveEggData = {}; -- { ["Draw001"] = { Req=5, DisplayName="Draw001 (5 Wins)" }, ... }
+local livePetModels = {}; -- { "Pet001", "Pet002", ... }
 
 -- Helper Functions
-local function pN(s) s=tostring(s):gsub("Strength",""):gsub(" ",""):gsub(",",""):lower(); local x=s:match("([a-z]+)$"); if x and nS[x]then local n=s:sub(1,#s-#x); return tonumber(n)*nS[x]end; return tonumber(s)or 0; end;
+local function pN(s) s=tostring(s):gsub("[^%d%.%a]",""):lower(); local nS={k=1e3,m=1e6,b=1e9,t=1e12,qa=1e15,qi=1e18,sx=1e21,sp=1e24,oc=1e27,no=1e30}; local x=s:match("([a-z]+)$"); if x and nS[x]then local n=s:sub(1,#s-#x); return tonumber(n)*nS[x]end; return tonumber(s)or 0; end;
 
 -- Rayfield UI Initialization
 local RF = loadstring(game:HttpGet('https://sirius.menu/rayfield'))();
 local W = RF:CreateWindow({Name="Fighting Sword",LoadingTitle="Fighting Sword Interface",LoadingSubtitle="by Nexus-Lua",Theme="Amethyst",ToggleUIKeybind=Enum.KeyCode.LeftControl,ConfigurationSaving={Enabled=true,FolderName="FightingSwordConfig",FileName="FightingSword"}});
 local FT,PT,MT,ST,UT,MiscT,ProT,SetT=W:CreateTab("Farm","swords"),W:CreateTab("Pet","dog"),W:CreateTab("Map","map"),W:CreateTab("Shop","shopping-cart"),W:CreateTab("Upgrade","arrow-up-circle"),W:CreateTab("Misc","sliders-horizontal"),W:CreateTab("Profile","user"),W:CreateTab("Settings","settings");
 
+-- UI Element Declarations
+local WSD, ATT, EID, AutoDeleteDropdown, AHT;
+
+-- Live Data Scanning Engine
+local function refreshAllLiveData()
+    liveTrainData, liveEggData, livePetModels = {}, {}, {};
+    local tempWorldOptions, tempEggOptions, tempPetOptions = {}, {}, {"None"};
+    local hatchGuis = lp.PlayerGui:FindFirstChild("HatchGuis")
+
+    -- Scan Worlds for Training Spots & Eggs
+    local worldsFolder = ws:FindFirstChild("Worlds")
+    if worldsFolder then
+        for _, world in ipairs(worldsFolder:GetChildren()) do
+            local worldNum = world.Name
+            if tonumber(worldNum) then
+                local worldName = "World " .. worldNum
+                liveTrainData[worldName] = {}; table.insert(tempWorldOptions, worldName);
+                for _, spot in ipairs(world:GetChildren()) do
+                    if spot.Name:match("TrainPower") and spot:FindFirstChild("HeadStat") then
+                        local reqLabel = spot.HeadStat:FindFirstChild("Frame.Frame.TextLabel")
+                        if reqLabel then table.insert(liveTrainData[worldName], {RemoteName = spot.Name, Req = pN(reqLabel.Text)}) end
+                    end
+                    if spot.Name == "Eggs" then
+                        for _, egg in ipairs(spot:GetChildren()) do
+                            local costLabel = egg:FindFirstChild("PriceHUD.EggCost.Amount")
+                            if costLabel and hatchGuis and hatchGuis:FindFirstChild(egg.Name) then
+                                local req = pN(costLabel.Text); local displayName = egg.Name .. " (" .. costLabel.Text:gsub(" ","") .. " Wins)";
+                                liveEggData[egg.Name] = {Req = req, DisplayName = displayName}; table.insert(tempEggOptions, displayName);
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Scan for all possible Pet Models
+    local petModelFolder = rs:FindFirstChild("Asserts.PetModels")
+    if petModelFolder then for _, petModel in ipairs(petModelFolder:GetChildren()) do table.insert(tempPetOptions, petModel.Name) end end
+    livePetModels = tempPetOptions;
+
+    -- Refresh UI Dropdowns with newly scanned data
+    if WSD and #tempWorldOptions > 0 then local cur = WSD.CurrentOption[1]; WSD:Refresh(tempWorldOptions); if table.find(tempWorldOptions, cur) then WSD:Set({cur}) end end
+    if EID and #tempEggOptions > 0 then local cur = EID.CurrentOption[1]; EID:Refresh(tempEggOptions); if table.find(tempEggOptions, cur) then EID:Set({cur}) end end
+    if AutoDeleteDropdown and #livePetModels > 1 then local cur = AutoDeleteDropdown.CurrentOption; AutoDeleteDropdown:Refresh(livePetModels); AutoDeleteDropdown:Set(cur) end
+    RF:Notify({Title="Live Data", Content="Refreshed all game data.", Duration=3, Image="refresh-cw"})
+end
+
 -- Farm Tab
 FT:CreateSection("Auto Train Power");
-local WSD = FT:CreateDropdown({Name="Select World",Options=O_W_N,CurrentOption={O_W_N[1]},Flag="AutoTrainWorld",Callback=function()end});
-local ATT = FT:CreateToggle({Name="Auto Train Power",CurrentValue=false,Flag="AutoTrainToggle",Callback=function(V)
+FT:CreateButton({Name = "Refresh Live Data", Callback = refreshAllLiveData});
+WSD = FT:CreateDropdown({Name="Select World",Options={},Flag="AutoTrainWorld",Callback=function()end});
+ATT = FT:CreateToggle({Name="Auto Train Power",CurrentValue=false,Flag="AutoTrainToggle",Callback=function(V)
     isAT=V;
     if isAT then
         local c=lp.Character or lp.CharacterAdded:Wait(); local pT=c:WaitForChild("PlayerTag",5); local sO=pT and pT:WaitForChild("Strength",5);
-        if not sO then RF:Notify({Title="Error",Content="Strength object not found!",Duration=8,Image="alert-octagon"});isAT=false;ATT:Set(false);return end;
-        local sWN=WSD.CurrentOption[1]; local wID=W_N_ID[sWN]; local a={[1]=wID}; rs.Events.World.Rf_TeleportToWorld:InvokeServer(unpack(a));
-        RF:Notify({Title="Auto-Train",Content="Teleported to "..sWN..". Starting...",Duration=4,Image="play"})
+        if not sO then RF:Notify({Title="Error",Content="Strength object not found!",Duration=8,Image="alert-octagon"});isAT=false;ATT:Set(false);return end
+        local selectedWorldName = WSD.CurrentOption[1]; local worldNum = selectedWorldName and selectedWorldName:match("%d+"); if not worldNum then return end
+        local worldID = "World" .. string.format("%03d", worldNum); local a={[1]=worldID}; rs.Events.World.Rf_TeleportToWorld:InvokeServer(unpack(a));
+        RF:Notify({Title="Auto-Train",Content="Teleporting to "..selectedWorldName,Duration=4,Image="play"})
     else RF:Notify({Title="Auto-Train",Content="Stopped.",Duration=4,Image="hand"}) end
 end});
 task.spawn(function() while true do if isAT then local c=lp.Character; if c then local pT=c:FindFirstChild("PlayerTag"); if pT then local sS=pT:FindFirstChild("Strength"); if sS then
-    local cS=pN(sS.Text); local sWID=W_N_ID[WSD.CurrentOption[1]]; local wTA=TD[sWID]; local tR_arg=nil;
-    for i=#wTA,1,-1 do local a=wTA[i]; if cS>=a.S then tR_arg=a.R; break end end;
-    if tR_arg then local args={[1]=tR_arg}; rs.Events.Game.Re_TrainPower:FireServer(unpack(args)); end
+    local cS=pN(sS.Text); local selectedWorldName = WSD.CurrentOption[1];
+    if selectedWorldName and liveTrainData[selectedWorldName] then
+        local wTA=liveTrainData[selectedWorldName]; local tR_arg=nil;
+        table.sort(wTA, function(a,b) return a.Req > b.Req end);
+        for _,a in ipairs(wTA) do if cS>=a.Req then tR_arg=a.RemoteName; break end end;
+        if tR_arg then local args={[1]=tR_arg}; rs.Events.Game.Re_TrainPower:FireServer(unpack(args)); end
+    end
 end end end; task.wait(0.1) else task.wait(1) end end end);
 
 -- Pet Tab
 PT:CreateSection("Auto Hatch & Delete");
-local EID; -- Pre-declare for reference
-PT:CreateButton({Name = "Refresh", Callback = function()
-    local hatchGuis = lp.PlayerGui:FindFirstChild("HatchGuis")
-    if not hatchGuis then RF:Notify({Title="Scan Failed",Content="HatchGuis not found.",Duration=5,Image="x-circle"}); return end
-    liveEggData = {}; eggDisplayNameMap = {}; local eggOptions = {};
-    for i, eggMeta in ipairs(ED_Metadata) do
-        local ui = hatchGuis:FindFirstChild(eggMeta.ID)
-        if ui and ui.Enabled then
-            local req = eggMeta.Req; local reqString;
-            if req>=1e30 then reqString=string.format("%.2fno",req/1e30)elseif req>=1e27 then reqString=string.format("%.2foc",req/1e27)elseif req>=1e24 then reqString=string.format("%.2fsp",req/1e24)elseif req>=1e21 then reqString=string.format("%.2fsx",req/1e21)elseif req>=1e18 then reqString=string.format("%.2fqi",req/1e18)elseif req>=1e15 then reqString=string.format("%.2fqa",req/1e15)elseif req>=1e12 then reqString=string.format("%.2ft",req/1e12)elseif req>=1e9 then reqString=string.format("%.2fb",req/1e9)elseif req>=1e6 then reqString=string.format("%.2fm",req/1e6)elseif req>=1e3 then reqString=string.format("%.2fk",req/1e3)else reqString=tostring(req)end
-            local displayName = "Egg "..i.." ("..reqString:gsub("%.00","").." Wins)"; table.insert(eggOptions, displayName);
-            liveEggData[eggMeta.ID] = {Req = req, Index = i}; eggDisplayNameMap[displayName] = eggMeta.ID;
-        end
-    end
-    if EID then
-        if #eggOptions > 0 then
-            local currentSelection = EID.CurrentOption and EID.CurrentOption[1] or nil; EID:Refresh(eggOptions);
-            if currentSelection and table.find(eggOptions, currentSelection) then EID:Set({currentSelection}) end
-            RF:Notify({Title="Scan Complete",Content="Found "..#eggOptions.." nearby eggs.",Duration=5,Image="check-circle"})
-        else EID:Refresh({}); RF:Notify({Title="Scan Complete",Content="No eggs found nearby.",Duration=5,Image="search"}) end
-    end
-end});
+PT:CreateButton({Name = "Refresh Live Data", Callback = refreshAllLiveData});
 EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function()end});
-local AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None","Pet 1","Pet 2","Pet 3","Pet 4"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
-PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
+AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
+AHT = PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
 
 task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("leaderstats"); local wS=l and l:FindFirstChild("\240\159\143\134Wins"); if wS then
-    local currentEggName = EID.CurrentOption[1]
-    if currentEggName then
-        local selectedHatchID = eggDisplayNameMap[currentEggName]
-        if selectedHatchID and liveEggData[selectedHatchID] then
-            local selectedEggData = liveEggData[selectedHatchID]
-            if wS.Value >= selectedEggData.Req then
-                local deleteList = {}; local startPetId = (selectedEggData.Index - 1) * 4 + 1;
-                for _, nickname in ipairs(AutoDeleteDropdown.CurrentOption) do
-                    local petIndex = tonumber(nickname:match("%d+"));
-                    if petIndex then local actualId = string.format("Pet%03d", startPetId + petIndex - 1); table.insert(deleteList, actualId); end
-                end
-                rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedHatchID, deleteList);
-            end
-        end
+    local currentEggName = EID.CurrentOption[1]; local selectedEggID;
+    if currentEggName then for id, data in pairs(liveEggData) do if data.DisplayName == currentEggName then selectedEggID = id; break; end end end
+
+    if selectedEggID and liveEggData[selectedEggID] and wS.Value >= liveEggData[selectedEggID].Req then
+        local deleteList = {};
+        for _, petNameToDelete in ipairs(AutoDeleteDropdown.CurrentOption) do if petNameToDelete ~= "None" then table.insert(deleteList, petNameToDelete) end end
+        rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedEggID, deleteList);
     end
 end; task.wait(0.1) else task.wait(1) end end end);
 
+-- Auto-refresh & Initial Scan
+task.spawn(function() task.wait(3); refreshAllLiveData(); while task.wait(30) do refreshAllLiveData() end end)
+
 -- Map Tab
-local function gLN() local n={}; for i,d in ipairs(TL) do table.insert(n,d.Name) end; return n; end;
+local mapWorlds = {"Castle", "Mushroom Forest", "Desert Pyramid", "Snow Land", "Underwater", "Alien Desert", "Candy", "Energy Factory", "Altar", "Demon King", "Heavenly Gates", "Halls of Valhalla", "Voidfallen Kingdom", "Realm of the Monkey King", "The Fractal Fortress", "The Timeless Cavern"}
 MT:CreateSection("Teleport");
-local TDD = MT:CreateDropdown({Name="Select Destination",Options=gLN(),CurrentOption={gLN()[1]},Flag="TeleportDestination",Callback=function(O)end});
-MT:CreateButton({Name="Teleport",Callback=function() local c=lp.Character; local rP=c and c:FindFirstChild("HumanoidRootPart"); if not rP then RF:Notify({Title="Error",Content="Cannot find char.",Duration=5,Image="alert-triangle"}); return end; local sLN=TDD.CurrentOption[1]; local tCF; for i,d in ipairs(TL) do if d.Name==sLN then tCF=d.CFrame; break end end; if tCF then rP.CFrame=tCF; RF:Notify({Title="Teleport",Content="Teleported to "..sLN,Duration=5,Image="send"}) else RF:Notify({Title="Error",Content="Invalid location",Duration=5,Image="alert-triangle"}) end end});
+local TDD = MT:CreateDropdown({Name="Select Destination",Options=mapWorlds,CurrentOption={mapWorlds[1]},Flag="TeleportDestination",Callback=function(O)end});
+MT:CreateButton({Name="Teleport",Callback=function()
+    local rootPart = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart"); if not rootPart then RF:Notify({Title="Error",Content="Cannot find char.",Duration=5,Image="alert-triangle"}); return end
+    local selectedWorldName = TDD.CurrentOption[1]; local worldIndex;
+    for i, name in ipairs(mapWorlds) do if name == selectedWorldName then worldIndex = i; break; end end
+    if not worldIndex then RF:Notify({Title="Error",Content="Invalid world.",Duration=5,Image="alert-triangle"}); return end
+    local targetObject;
+    if worldIndex == 1 then targetObject = ws:FindFirstChild("SpawnLocation") else
+        local worldPart = ws:FindFirstChild("Map_Model") and ws.Map_Model:FindFirstChild("World" .. string.format("%02d", worldIndex))
+        targetObject = worldPart and worldPart:FindFirstChild("Core.Sword.Sword")
+    end
+    if targetObject and targetObject:IsA("BasePart") then rootPart.CFrame = targetObject.CFrame + Vector3.new(0, 5, 0); RF:Notify({Title="Teleport",Content="Teleported to "..selectedWorldName,Duration=5,Image="send"}) else RF:Notify({Title="Error",Content="Teleport point for "..selectedWorldName.." not found.",Duration=5,Image="alert-triangle"}) end
+end});
 
 -- Profile Tab
 ProT:CreateSection("Live Player Stats");
