@@ -3,7 +3,7 @@ local p,rs,lp,ws = game:GetService("Players"), game:GetService("ReplicatedStorag
 
 -- Script State Variables
 local isAT, isAH = false, false;
-local petNicknameToIdMap = {};
+local selectedEggInfo; -- Will store data of the chosen egg
 
 -- Data Tables
 local nS = {k=1e3,m=1e6,b=1e9,t=1e12,qa=1e15,qi=1e18,sx=1e21,sp=1e24,oc=1e27,no=1e30};
@@ -43,24 +43,24 @@ end});
 task.spawn(function() while true do if isAT then local c=lp.Character; if c then local pT=c:FindFirstChild("PlayerTag"); if pT then local sS=pT:FindFirstChild("Strength"); if sS then
     local cS=pN(sS.Text); local sWID=W_N_ID[WSD.CurrentOption[1]]; local wTA=TD[sWID]; local tR_arg=nil;
     for i=#wTA,1,-1 do local a=wTA[i]; if cS>=a.S then tR_arg=a.R; break end end;
-    if tR_arg then
-        local args = {[1] = tR_arg}; -- Corrected data format
-        rs.Events.Game.Re_TrainPower:FireServer(unpack(args));
-    end
+    if tR_arg then local args={[1]=tR_arg}; rs.Events.Game.Re_TrainPower:FireServer(unpack(args)); end
 end end end; task.wait(0.1) else task.wait(1) end end end);
 
 -- Pet Tab
 PT:CreateSection("Auto Hatch & Delete");
 local function gEN() local n={}; for i,d in ipairs(ED)do local r=d.Req; local s; if r>=1e30 then s=string.format("%.2fno",r/1e30)elseif r>=1e27 then s=string.format("%.2foc",r/1e27)elseif r>=1e24 then s=string.format("%.2fsp",r/1e24)elseif r>=1e21 then s=string.format("%.2fsx",r/1e21)elseif r>=1e18 then s=string.format("%.2fqi",r/1e18)elseif r>=1e15 then s=string.format("%.2fqa",r/1e15)elseif r>=1e12 then s=string.format("%.2ft",r/1e12)elseif r>=1e9 then s=string.format("%.2fb",r/1e9)elseif r>=1e6 then s=string.format("%.2fm",r/1e6)elseif r>=1e3 then s=string.format("%.2fk",r/1e3)else s=tostring(r)end; table.insert(n,"Egg "..i.." ("..s:gsub("%.00","").." Wins)")end; return n; end;
-local EID = PT:CreateDropdown({Name="Select Egg",Options=gEN(),CurrentOption={gEN()[1]},Flag="AutoHatchEgg",Callback=function()end});
+local EID = PT:CreateDropdown({Name="Select Egg",Options=gEN(),CurrentOption={gEN()[1]},Flag="AutoHatchEgg",Callback=function(options)
+    local eggName = options[1]; local eggIndex = tonumber(eggName:match("%d+"));
+    if eggIndex and ED[eggIndex] then selectedEggInfo = { Index = eggIndex, Data = ED[eggIndex] }; end
+end});
+selectedEggInfo = { Index = 1, Data = ED[1] }; -- Initialize with default
 local AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None","Pet 1","Pet 2","Pet 3","Pet 4"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
 PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
 
 task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("leaderstats"); local wS=l and l:FindFirstChild("\240\159\143\134Wins"); if wS then
-    local cW=wS.Value; local sEN=EID.CurrentOption[1]; local sEI=tonumber(sEN:match("%d+")); local sED=ED[sEI];
-    if sED and cW>=sED.Req then
+    if selectedEggInfo and wS.Value >= selectedEggInfo.Data.Req then
         local deleteList = {};
-        local startPetId = (sEI - 1) * 4 + 1;
+        local startPetId = (selectedEggInfo.Index - 1) * 4 + 1;
         for _, nickname in ipairs(AutoDeleteDropdown.CurrentOption) do
             local petIndex = tonumber(nickname:match("%d+"));
             if petIndex then
@@ -68,7 +68,7 @@ task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("lead
                 table.insert(deleteList, actualId);
             end
         end
-        rs.Events.Pets.Re_Hatch:FireServer("Hatch", sED.ID, deleteList);
+        rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedEggInfo.Data.ID, deleteList);
     end
 end; task.wait(0.1) else task.wait(1) end end end);
 
