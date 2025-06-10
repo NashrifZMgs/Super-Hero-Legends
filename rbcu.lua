@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 7)
-    Master's Request: Diagnose and fix the "compare nil" error.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Error Corrected)
-    Optimization: Mobile/Touchscreen, Robust Loading, Dynamic Data
+    Nexus-Lua Script (Version 8)
+    Master's Request: Address the "hatching remote not found" error.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Improved Pathing)
+    Optimization: Mobile/Touchscreen, Robust Loading, Easily-Updated Variables
 ]]
 
 -- A more stable way to load the Rayfield library, with corrected variable assignment
@@ -76,18 +76,27 @@ ClicksTab:CreateToggle({
 --============ PET TAB ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
--- CORRECTED: Function to find all eggs and their prices, then sort them
+--[[
+    MASTER, ATTENTION:
+    The numbers below are the cause of the "remote not found" error.
+    Game updates change the order of things. Use your explorer tool to find the new
+    numerical index for the Hatching Service and the Hatching Remote Event, then
+    update the numbers in the two variables below.
+]]
+local HATCH_SERVICE_INDEX = 20 -- [TODO: I MAY NEED THE NEW INDEX NUMBER FOR THE HATCHING SERVICE HERE]
+local HATCH_EVENT_INDEX = 3   -- [TODO: I MAY NEED THE NEW INDEX NUMBER FOR THE HATCHING EVENT HERE]
+
+
+-- Function to find all eggs and their prices, then sort them
 local function getSortedEggList()
     local eggDataList = {}
     local mapsFolder = workspace.Game.Maps
-    
     for _, mapInstance in pairs(mapsFolder:GetChildren()) do
         if mapInstance:FindFirstChild("Eggs") then
             for _, eggInstance in pairs(mapInstance.Eggs:GetChildren()) do
-                local priceLabel = eggInstance:FindFirstChild("Price", true) and eggInstance.Price:FindFirstChild("SurfaceGui", true) and eggInstance.Price.SurfaceGui:FindFirstChild("Label")
+                local priceLabel = eggInstance:FindFirstChild("Price.SurfaceGui.Label", true)
                 if priceLabel then
                     local success, price = pcall(function() return tonumber(priceLabel.Text) end)
-                    -- FIX: Ensure price is a valid number before adding to the list
                     if success and typeof(price) == "number" then
                         table.insert(eggDataList, {Name = eggInstance.Name, Price = price})
                     end
@@ -95,30 +104,18 @@ local function getSortedEggList()
             end
         end
     end
-    
-    -- This sort function will now only receive valid numbers
     table.sort(eggDataList, function(a, b) return a.Price < b.Price end)
-    
     local dropdownOptions = {}
     for _, eggData in pairs(eggDataList) do
         table.insert(dropdownOptions, string.format("%s (%s)", eggData.Name, eggData.Price))
     end
-    
     return dropdownOptions
 end
 
 local eggOptions = getSortedEggList()
 if #eggOptions == 0 then table.insert(eggOptions, "No Eggs Found") end
 
-local EggDropdown = PetTab:CreateDropdown({
-   Name = "Select Egg",
-   Options = eggOptions,
-   CurrentOption = {eggOptions[1]},
-   MultipleOptions = false,
-   Flag = "AutoHatchEggDropdown",
-   Callback = function(Options) end,
-})
-
+local EggDropdown = PetTab:CreateDropdown({ Name = "Select Egg", Options = eggOptions, CurrentOption = {eggOptions[1]}, MultipleOptions = false, Flag = "AutoHatchEggDropdown" })
 _G.isAutoHatching = false
 local AutoHatchStatusButton = PetTab:CreateButton({Name = "Status: Idle", Callback = function() end})
 
@@ -131,10 +128,11 @@ PetTab:CreateToggle({
       if Value then
          task.spawn(function()
             local success, hatchRemote = pcall(function()
-                return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[20]:WaitForChild("RE"):GetChildren()[3]
+                -- Now using the variables from above to find the remote
+                return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[HATCH_SERVICE_INDEX]:WaitForChild("RE"):GetChildren()[HATCH_EVENT_INDEX]
             end)
             if not success or not hatchRemote then
-                Rayfield:Notify({Title = "Error", Content = "Hatching remote not found.", Duration = 5, Image = "alert-triangle"})
+                Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. Path may need updating.", Duration = 7, Image = "alert-circle"})
                 _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
                 return
             end
@@ -145,23 +143,18 @@ PetTab:CreateToggle({
             while _G.isAutoHatching do
                 local selectedOption = EggDropdown.CurrentOption[1]
                 local eggName, eggPriceStr = selectedOption:match("(.+) %((%d+)%)")
-                
                 if eggName and eggPriceStr and clicksStat then
                     local eggPrice = tonumber(eggPriceStr)
-                    local currentClicks = clicksStat.Value
-                    
-                    if currentClicks >= eggPrice then
+                    if clicksStat.Value >= eggPrice then
                         AutoHatchStatusButton:Set("Status: Hatching...")
-                        local args = {[1] = eggName, [2] = 1}
-                        hatchRemote:FireServer(unpack(args))
+                        hatchRemote:FireServer(eggName, 1)
                         task.wait(0.05)
                     else
                         AutoHatchStatusButton:Set(string.format("Status: Waiting for %d clicks", eggPrice))
                         task.wait(1)
                     end
                 else
-                    AutoHatchStatusButton:Set("Status: Error")
-                    task.wait(1)
+                    AutoHatchStatusButton:Set("Status: Error parsing selection"); task.wait(1)
                 end
             end
             AutoHatchStatusButton:Set("Status: Idle")
