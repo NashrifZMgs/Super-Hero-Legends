@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 30 - Resilient Finder)
-    Master's Request: Fix script loading crash.
-    Functionality: All features stable, with a more patient and intelligent Heuristic Scanner.
-    Optimization: Mobile/Touchscreen, Resilient Loading, Advanced Heuristics
+    Nexus-Lua Script (Version 31 - Stable Revert)
+    Master's Request: Fix non-working features by removing the faulty Heuristic Scanner.
+    Functionality: All features reverted to the stable, index-based remote finding method.
+    Optimization: Mobile/Touchscreen, Robust Loading, Proven Logic
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -19,43 +19,9 @@ local Window = Rayfield:CreateWindow({ Name = windowTitle, LoadingTitle = "Nexus
 --============ TABS ============--
 local ClicksTab, PetTab, UpgradesTab, MapTab, MiscTab, ProfileTab, SettingsTab = Window:CreateTab("Clicks","mouse-pointer-click"), Window:CreateTab("Pet","paw-print"), Window:CreateTab("Upgrades","arrow-up-circle"), Window:CreateTab("Map","map"), Window:CreateTab("Misc","package"), Window:CreateTab("Profile","user-circle"), Window:CreateTab("Settings","settings-2")
 
---===================================================================--
---                    RESILIENT REMOTE FINDER MODULE                 --
---===================================================================--
-local Finder = {}
-
-function Finder:Scan(profile)
-    -- FIX: This entire block is now inside the function, so it only runs when needed.
-    -- It is also wrapped in a pcall to prevent any errors if the game structure changes.
-    local success, Services = pcall(function()
-        return game:GetService("ReplicatedStorage"):WaitForChild("Packages", 20):WaitForChild("Knit", 20):WaitForChild("Services", 20)
-    end)
-
-    if not success or not Services then return nil end
-
-    for _, service in ipairs(Services:GetChildren()) do
-        local remoteFolder = service:FindFirstChild(profile.Type)
-        if remoteFolder then
-            if profile.Name then -- Search for a remote WITH a specific name.
-                local foundRemote = remoteFolder:FindFirstChild(profile.Name)
-                if foundRemote then return foundRemote end
-            elseif profile.ExcludeName then -- Search for a remote that DOES NOT have a specific name.
-                for _, remote in ipairs(remoteFolder:GetChildren()) do
-                    if remote.Name ~= profile.ExcludeName then return remote end -- Return the first one that is different.
-                end
-            end
-        end
-    end
-    return nil -- Return nil if nothing is found
-end
-
---===================================================================--
---                          SCRIPT FEATURES                          --
---===================================================================--
-
 --============ CLICKS TAB ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
-local CLICK_SERVICE_INDEX, CLICK_EVENT_INDEX = 19, 3
+local CLICK_SERVICE_INDEX, CLICK_EVENT_INDEX = 19, 3 -- [TODO: Update if needed]
 _G.isAutoClicking = false
 ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle", Callback = function(v)
     _G.isAutoClicking = v
@@ -67,45 +33,51 @@ ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "Auto
 end})
 
 local RebirthSection = ClicksTab:CreateSection("Auto Rebirth")
+local REBIRTH_SERVICE_INDEX = 6 -- [TODO: Update if needed]
 local rebirthOpts = {"1 Rebirth","5 Rebirths","10 Rebirths","25 Rebirths","50 Rebirths","100 Rebirths","200 Rebirths","500 Rebirths","1k Rebirths","2.5k Rebirths","Rebirth 11","Rebirth 12","Rebirth 13","Rebirth 14","Rebirth 15","Rebirth 16","Rebirth 17","Rebirth 18","Rebirth 19","Rebirth 20","Rebirth 21","Rebirth 22","Rebirth 23","Rebirth 24","Rebirth 25","Rebirth 26","Rebirth 27","Rebirth 28","Rebirth 29","Rebirth 30","Rebirth 31","Rebirth 32","Rebirth 33","Rebirth 34","Rebirth 35","Rebirth 36"}
 local RebirthDropdown = ClicksTab:CreateDropdown({Name="Select Rebirth Tier",Options=rebirthOpts,CurrentOption={rebirthOpts[1]},MultipleOptions=false,Flag="RebirthTierDropdown"})
 _G.isAutoRebirthing = false
 ClicksTab:CreateToggle({Name="Auto Rebirth",CurrentValue=false,Flag="AutoRebirthToggle",Callback=function(v) _G.isAutoRebirthing=v;if v then task.spawn(function()
-    local rF = Finder:Scan({ Type = "RF", Name = "jag känner en bot, hon heter anna, anna heter hon" })
-    if not rF then Rayfield:Notify({Title="Error",Content="Auto Rebirth remote not found automatically.",Duration=7,Image="alert-triangle"});_G.isAutoRebirthing=false;Rayfield.Flags.AutoRebirthToggle:Set(false)return end
+    local s,rF = pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[REBIRTH_SERVICE_INDEX].RF["jag känner en bot, hon heter anna, anna heter hon"]end)
+    if not s or not rF then Rayfield:Notify({Title="Error",Content="Rebirth remote needs updating.",Duration=7,Image="alert-triangle"});_G.isAutoRebirthing=false;Rayfield.Flags.AutoRebirthToggle:Set(false)return end
     while _G.isAutoRebirthing do local id=table.find(rebirthOpts,RebirthDropdown.CurrentOption[1]);if id then pcall(rF.InvokeServer,rF,id)task.wait(0.5)end end
 end)end end})
 
 --============ PET TAB ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
-local HATCH_SERVICE_INDEX, HATCH_EVENT_INDEX = 20, 3
+local HATCH_SERVICE_INDEX, HATCH_EVENT_INDEX = 20, 3 -- [TODO: Update if needed]
 local function getEggNames() local n={};local m=workspace.Game.Maps;for _,i in pairs(m:GetChildren())do if i:IsA("Folder")and i:FindFirstChild("Eggs")then for _,e in pairs(i.Eggs:GetChildren())do if e:IsA("Model")then table.insert(n,e.Name)end end end end;table.sort(n);return n end
 local allEggNames=getEggNames();if #allEggNames==0 then table.insert(allEggNames,"No Eggs Found")end
 local EggDropdown=PetTab:CreateDropdown({Name="Select Egg",Options=allEggNames,CurrentOption={allEggNames[1]},MultipleOptions=false,Flag="EggNameDropdown"})
 _G.isAutoHatching=false;local AutoHatchStatusButton=PetTab:CreateButton({Name="Status: Idle",Callback=function()end})
-PetTab:CreateToggle({Name="Auto Hatch Selected Egg (x3)",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(v) _G.isAutoHatching=v;if v then task.spawn(function()local s,hR=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[HATCH_SERVICE_INDEX].RE:GetChildren()[HATCH_EVENT_INDEX]end);if not s or not hR then Rayfield:Notify({Title="Error",Content="Hatching remote needs updating.",Duration=7,Image="alert-circle"});_G.isAutoHatching=false;Rayfield.Flags.AutoHatchToggle:Set(false)return end;while _G.isAutoHatching do local sel=EggDropdown.CurrentOption[1];if sel and sel~="No Eggs Found"then AutoHatchStatusButton:Set("Status: Hatching "..sel);pcall(hR.FireServer,hR,sel,2)task.wait(0.05)else AutoHatchStatusButton:Set("Status: No egg selected");_G.isAutoHatching=false;Rayfield.Flags.AutoHatchToggle:Set(false)break end end;AutoHatchStatusButton:Set("Status: Idle")end)else AutoHatchStatusButton:Set("Status: Idle")end end})
+PetTab:CreateToggle({Name="Auto Hatch Selected Egg (x3)",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(v) _G.isAutoHatching=v;if v then task.spawn(function()
+    local s,hR=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[HATCH_SERVICE_INDEX].RE:GetChildren()[HATCH_EVENT_INDEX]end)
+    if not s or not hR then Rayfield:Notify({Title="Error",Content="Hatching remote needs updating.",Duration=7,Image="alert-circle"});_G.isAutoHatching=false;Rayfield.Flags.AutoHatchToggle:Set(false)return end
+    while _G.isAutoHatching do local sel=EggDropdown.CurrentOption[1];if sel and sel~="No Eggs Found"then AutoHatchStatusButton:Set("Status: Hatching "..sel);pcall(hR.FireServer,hR,sel,2)task.wait(0.05)else AutoHatchStatusButton:Set("Status: No egg selected");_G.isAutoHatching=false;Rayfield.Flags.AutoHatchToggle:Set(false)break end end;AutoHatchStatusButton:Set("Status: Idle")
+end)else AutoHatchStatusButton:Set("Status: Idle")end end})
 
 --============ UPGRADES TAB ============--
 local UpgradeSection=UpgradesTab:CreateSection("Auto Purchase")
+local UPGRADE_SERVICE_INDEX = 15 -- [TODO: Update if needed]
 local function getUpgradeNames()local n={};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("UpgradesFrame",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5):WaitForChild("Upgrades",5);if h then for _,i in pairs(h:GetChildren())do if i:IsA("Frame")then table.insert(n,i.Name)end end end;return n end
 local allUpgradeNames=getUpgradeNames();if #allUpgradeNames==0 then table.insert(allUpgradeNames,"No Upgrades Found")end
 local UpgradeDropdown=UpgradesTab:CreateDropdown({Name="Select Upgrades",Options=allUpgradeNames,MultipleOptions=true,Flag="UpgradeSelectionDropdown"})
 _G.isAutoUpgrading=false
 UpgradesTab:CreateToggle({Name="Auto Upgrade Selected",CurrentValue=false,Flag="AutoUpgradeToggle",Callback=function(v) _G.isAutoUpgrading=v;if v then task.spawn(function()
-    local uRF = Finder:Scan({ Type = "RF", Name = "jag känner en bot, hon heter anna, anna heter hon" })
-    if not uRF then Rayfield:Notify({Title="Error",Content="Upgrade remote not found automatically.",Duration=7,Image="alert-triangle"});_G.isAutoUpgrading=false;Rayfield.Flags.AutoUpgradeToggle:Set(false)return end
+    local s,uRF=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[UPGRADE_SERVICE_INDEX].RF["jag känner en bot, hon heter anna, anna heter hon"]end)
+    if not s or not uRF then Rayfield:Notify({Title="Error",Content="Upgrade remote needs updating.",Duration=7,Image="alert-triangle"});_G.isAutoUpgrading=false;Rayfield.Flags.AutoUpgradeToggle:Set(false)return end
     while _G.isAutoUpgrading do if #UpgradeDropdown.CurrentOption>0 then for _,name in ipairs(UpgradeDropdown.CurrentOption)do local fmtName=string.lower(string.sub(name,1,1))..string.sub(name,2);pcall(uRF.InvokeServer,uRF,fmtName)task.wait(0.2);if not _G.isAutoUpgrading then break end end end;task.wait(0.5)end
 end)end end})
 
 local UpgradeFarmSection=UpgradesTab:CreateSection("Upgrade Farm")
+local FARM_SERVICE_INDEX,FARM_RF_INDEX = 24, 1 -- [TODO: Update if needed]
 local function getFarmNames() local n={"farmer"};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("FarmingMachineFrame",5):WaitForChild("Displays",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5);if h then for _,i in pairs(h:GetChildren())do if i.Name~="UIListLayout" and i.Name~="YourFarmText" then table.insert(n,i.Name)end end end;table.sort(n);return n end
 local allFarmNames=getFarmNames()
 local FarmDropdown=UpgradesTab:CreateDropdown({Name="Select Farm Item(s)",Options=allFarmNames,MultipleOptions=true,Flag="FarmItemDropdown"})
 _G.isAutoFarming=false
 UpgradesTab:CreateToggle({Name="Auto Farm Selected",CurrentValue=false,Flag="AutoFarmToggle",Callback=function(v) _G.isAutoFarming=v;if v then task.spawn(function()
-    -- INTELLIGENCE: Now looks for an RF that IS NOT the known one.
-    local fRF = Finder:Scan({ Type = "RF", ExcludeName = "jag känner en bot, hon heter anna, anna heter hon" })
-    if not fRF then Rayfield:Notify({Title="Error",Content="Farming remote not found automatically.",Duration=7,Image="alert-triangle"});_G.isAutoFarming=false;Rayfield.Flags.AutoFarmToggle:Set(false)return end
+    local s,fRF=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[FARM_SERVICE_INDEX].RF:GetChildren()[FARM_RF_INDEX]end)
+    if not s or not fRF then Rayfield:Notify({Title="Error",Content="Farming remote needs updating.",Duration=7,Image="alert-triangle"});_G.isAutoFarming=false;Rayfield.Flags.AutoFarmToggle:Set(false)return end
     while _G.isAutoFarming do if #FarmDropdown.CurrentOption>0 then for _,name in ipairs(FarmDropdown.CurrentOption)do local fmtName=string.lower(string.sub(name,1,1))..string.sub(name,2);pcall(fRF.InvokeServer,fRF,fmtName)task.wait(0.5);if not _G.isAutoFarming then break end end end;task.wait(0.5)end
 end)end end})
 
@@ -121,7 +93,9 @@ SettingsTab:CreateButton({ Name = "Restart Script", Callback = function() Rayfie
 
 --============ LIVE DATA UPDATER ============--
 spawn(function()
-    local Player = game:GetService("Players").LocalPlayer; local leaderstats = Player:WaitForChild("leaderstats"); local startTime = tick()
+    local Player = game:GetService("Players").LocalPlayer
+    local leaderstats = Player:WaitForChild("leaderstats")
+    local startTime = tick()
     while task.wait(1) do
         if not pcall(function() Rayfield:IsVisible() end) then break end
         local elapsedTime = tick() - startTime; PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d", math.floor(elapsedTime / 3600), math.floor((elapsedTime % 3600) / 60), math.floor(elapsedTime % 60)))
