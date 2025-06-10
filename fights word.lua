@@ -3,7 +3,9 @@ local p,rs,lp,ws = game:GetService("Players"), game:GetService("ReplicatedStorag
 
 -- Script State Variables
 local isAT, isAH = false, false;
-local liveEggData = {}; -- Stores live data: { ["Egg 1 (5 Wins)"] = {ID="Draw001", Req=5, Index=1}, ... }
+local liveEggData = {}; -- Stores live data: { ["Draw001"] = { Req = 5, Index = 1 }, ... }
+local eggDisplayNameMap = {}; -- Maps display name to ID for easy lookup
+local selectedHatchID = nil; -- Single source of truth for the selected egg ID
 
 -- Data Tables
 local nS = {k=1e3,m=1e6,b=1e9,t=1e12,qa=1e15,qi=1e18,sx=1e21,sp=1e24,oc=1e27,no=1e30};
@@ -48,23 +50,23 @@ end end end; task.wait(0.1) else task.wait(1) end end end);
 
 -- Pet Tab
 PT:CreateSection("Auto Hatch & Delete");
-local EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function()end});
-local AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None","Pet 1","Pet 2","Pet 3","Pet 4"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
-PT:CreateButton({Name = "Scan for Nearby Eggs", Callback = function()
+PT:CreateButton({Name = "Refresh", Callback = function()
     local hatchGuis = lp.PlayerGui:FindFirstChild("HatchGuis")
     if not hatchGuis then RF:Notify({Title="Scan Failed",Content="HatchGuis not found.",Duration=5,Image="x-circle"}); return end
     
     liveEggData = {}
+    eggDisplayNameMap = {}
     local eggOptions = {}
     
     for i, eggMeta in ipairs(ED_Metadata) do
         local ui = hatchGuis:FindFirstChild(eggMeta.ID)
-        if ui and ui.Enabled then -- CORRECTED: Changed .Visible to .Enabled
+        if ui and ui.Enabled then
             local req = eggMeta.Req; local reqString;
-            if req>=1e30 then reqString=string.format("%.2fno",req/1e30)elseif req>=1e27 then reqString=string.format("%.2foc",req/1e27)elseif req>=1e24 then reqString=string.format("%.2fsp",req/1e24)elseif req>=1e21 then reqString=string.format("%.2fsx",req/1e21)elseif req>=1e18 then reqString=string.format("%.2fqi",r/1e18)elseif req>=1e15 then reqString=string.format("%.2fqa",r/1e15)elseif req>=1e12 then reqString=string.format("%.2ft",req/1e12)elseif req>=1e9 then reqString=string.format("%.2fb",req/1e9)elseif req>=1e6 then reqString=string.format("%.2fm",req/1e6)elseif req>=1e3 then reqString=string.format("%.2fk",req/1e3)else reqString=tostring(req)end
+            if req>=1e30 then reqString=string.format("%.2fno",req/1e30)elseif req>=1e27 then reqString=string.format("%.2foc",req/1e27)elseif req>=1e24 then reqString=string.format("%.2fsp",req/1e24)elseif req>=1e21 then reqString=string.format("%.2fsx",req/1e21)elseif req>=1e18 then reqString=string.format("%.2fqi",req/1e18)elseif req>=1e15 then reqString=string.format("%.2fqa",req/1e15)elseif req>=1e12 then reqString=string.format("%.2ft",req/1e12)elseif req>=1e9 then reqString=string.format("%.2fb",req/1e9)elseif req>=1e6 then reqString=string.format("%.2fm",req/1e6)elseif req>=1e3 then reqString=string.format("%.2fk",req/1e3)else reqString=tostring(req)end
             local displayName = "Egg "..i.." ("..reqString:gsub("%.00","").." Wins)"
             table.insert(eggOptions, displayName)
-            liveEggData[displayName] = {ID = eggMeta.ID, Req = req, Index = i}
+            liveEggData[eggMeta.ID] = {Req = req, Index = i}
+            eggDisplayNameMap[displayName] = eggMeta.ID
         end
     end
     
@@ -74,12 +76,13 @@ PT:CreateButton({Name = "Scan for Nearby Eggs", Callback = function()
         EID:Refresh({}); RF:Notify({Title="Scan Complete",Content="No eggs found nearby.",Duration=5,Image="search"})
     end
 end});
-PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
+local EID = PT:CreateDropdown({Name="Select Egg",Options={},Flag="AutoHatchEgg",Callback=function(selected) selectedHatchID = eggDisplayNameMap[selected[1]] end});
+local AutoDeleteDropdown = PT:CreateDropdown({Name="Auto-Delete Pet",Options={"None","Pet 1","Pet 2","Pet 3","Pet 4"},CurrentOption={"None"},MultipleOptions=true,Flag="AutoDeletePets",Callback=function()end});
+PT:CreateToggle({Name="Auto Hatch",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(V) isAH=V; if V and EID.CurrentOption[1] then selectedHatchID = eggDisplayNameMap[EID.CurrentOption[1]] end; RF:Notify({Title="Auto-Hatch",Content=V and"Started."or"Stopped.",Duration=3,Image=V and"play"or"hand"})end});
 
 task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("leaderstats"); local wS=l and l:FindFirstChild("\240\159\143\134Wins"); if wS then
-    local currentEggName = EID.CurrentOption[1]
-    if currentEggName and liveEggData[currentEggName] then
-        local selectedEggData = liveEggData[currentEggName]
+    if selectedHatchID and liveEggData[selectedHatchID] then
+        local selectedEggData = liveEggData[selectedHatchID]
         if wS.Value >= selectedEggData.Req then
             local deleteList = {};
             local startPetId = (selectedEggData.Index - 1) * 4 + 1;
@@ -90,7 +93,7 @@ task.spawn(function() while true do if isAH then local l=lp:FindFirstChild("lead
                     table.insert(deleteList, actualId);
                 end
             end
-            rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedEggData.ID, deleteList);
+            rs.Events.Pets.Re_Hatch:FireServer("Hatch", selectedHatchID, deleteList);
         end
     end
 end; task.wait(0.1) else task.wait(1) end end end);
