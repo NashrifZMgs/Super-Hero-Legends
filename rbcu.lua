@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 11)
-    Master's Request: Rework logic to use egg names as IDs, ignoring price labels.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Name-based ID)
+    Nexus-Lua Script (Version 12)
+    Master's Request: Fix the "Select Egg Callback Error".
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Callback Fixed)
     Optimization: Mobile/Touchscreen, Robust Loading, Unloaded Map Compatibility
 ]]
 
@@ -62,10 +62,9 @@ ClicksTab:CreateToggle({
 })
 
 
---============ PET TAB (NEW LOGIC) ============--
+--============ PET TAB (FIXED) ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
--- New function to get egg names directly, ignoring price labels.
 local function getEggNames()
     local eggNames = {}
     local mapsFolder = workspace.Game.Maps
@@ -91,6 +90,9 @@ local EggDropdown = PetTab:CreateDropdown({
     CurrentOption = {allEggNames[1]},
     MultipleOptions = false,
     Flag = "EggNameDropdown",
+    -- FIX: Added the required empty callback to prevent the error.
+    Callback = function()
+    end,
 })
 
 _G.isAutoHatching = false
@@ -115,16 +117,13 @@ PetTab:CreateToggle({
 
             while _G.isAutoHatching do
                 local selectedEggName = EggDropdown.CurrentOption[1]
-                
-                -- Check if a valid egg is selected before firing
                 if selectedEggName and selectedEggName ~= "No Eggs Found In Workspace" then
                     AutoHatchStatusButton:Set("Status: Hatching " .. selectedEggName)
-                    -- Fire remote with the egg name and map ID 1, as per your instruction.
                     hatchRemote:FireServer(selectedEggName, 1)
-                    task.wait(0.05) -- Note: Affordability cannot be checked with this logic.
+                    task.wait(0.05)
                 else
                     AutoHatchStatusButton:Set("Status: No valid egg selected")
-                    _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false) -- Stop if no valid egg is selected
+                    _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
                     break
                 end
             end
