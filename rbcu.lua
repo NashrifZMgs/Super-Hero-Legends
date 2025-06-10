@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 14)
-    Master's Request: Fix non-functional Auto Hatch and improve stability.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Improved Stability)
-    Optimization: Mobile/Touchscreen, Robust Loading, Slower/Safer Remote Firing
+    Nexus-Lua Script (Version 16)
+    Master's Request: Change auto-hatch speed back to 0.05 seconds.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Faster Speed)
+    Optimization: Mobile/Touchscreen, Robust Loading, Faster Remote Firing
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -62,7 +62,7 @@ ClicksTab:CreateToggle({
 })
 
 
---============ PET TAB (IMPROVED) ============--
+--============ PET TAB (SPEED ADJUSTED) ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
 local function getEggNames()
@@ -96,9 +96,11 @@ PetTab:CreateToggle({
       _G.isAutoHatching = Value
       if Value then
          task.spawn(function()
-            local s, hR = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon"):WaitForChild("RE"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon") end)
+            local s, hR = pcall(function() 
+                return game:GetService("ReplicatedStorage"):WaitForChild("Packages", 9e9):WaitForChild("Knit", 9e9):WaitForChild("Services", 9e9):GetChildren()[20]:WaitForChild("RE", 9e9):GetChildren()[3]
+            end)
             if not s or not hR then
-                Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. Path may need updating.", Duration = 7, Image = "alert-circle"})
+                Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. This path may be unstable.", Duration = 7, Image = "alert-circle"})
                 _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
                 return
             end
@@ -107,9 +109,10 @@ PetTab:CreateToggle({
                 if selectedEggName and selectedEggName ~= "No Eggs Found In Workspace" then
                     AutoHatchStatusButton:Set("Status: Attempting: " .. selectedEggName)
                     
-                    -- New error checking for the FireServer call itself
+                    local args = {[1] = selectedEggName, [2] = 1}
+                    
                     local fireSuccess, fireError = pcall(function()
-                        hR:FireServer(selectedEggName, 1)
+                        hR:FireServer(unpack(args))
                     end)
                     
                     if not fireSuccess then
@@ -117,8 +120,8 @@ PetTab:CreateToggle({
                         _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
                     end
                     
-                    -- Slower, more stable delay
-                    task.wait(0.2)
+                    -- Sleep time changed back to 0.05 seconds
+                    task.wait(0.05)
                 else
                     AutoHatchStatusButton:Set("Status: No valid egg selected")
                     _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
