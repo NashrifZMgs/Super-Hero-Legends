@@ -43,7 +43,10 @@ end});
 task.spawn(function() while true do if isAT then local c=lp.Character; if c then local pT=c:FindFirstChild("PlayerTag"); if pT then local sS=pT:FindFirstChild("Strength"); if sS then
     local cS=pN(sS.Text); local sWID=W_N_ID[WSD.CurrentOption[1]]; local wTA=TD[sWID]; local tR_arg=nil;
     for i=#wTA,1,-1 do local a=wTA[i]; if cS>=a.S then tR_arg=a.R; break end end;
-    if tR_arg then rs.Events.Game.Re_TrainPower:FireServer(tR_arg) end
+    if tR_arg then
+        local args = {[1] = tR_arg}; -- Corrected data format
+        rs.Events.Game.Re_TrainPower:FireServer(unpack(args));
+    end
 end end end; task.wait(0.1) else task.wait(1) end end end);
 
 -- Pet Tab
