@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 9)
-    Master's Request: Update the script with the new hatching remote path.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Path Fixed)
+    Nexus-Lua Script (Version 10)
+    Master's Request: Address the "No Eggs Found" issue caused by game streaming.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (with Manual Refresh)
     Optimization: Mobile/Touchscreen, Robust Loading, Stable Remote Pathing
 ]]
 
@@ -76,17 +76,15 @@ ClicksTab:CreateToggle({
 --============ PET TAB ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
---[[
-    MASTER, ATTENTION: If "No Eggs Found" persists, the path below may have changed.
-]]
 local function getSortedEggList()
     local eggDataList = {}
-    local mapsFolder = workspace.Game.Maps -- [TODO: I MAY NEED A NEW PATH TO THE MAPS FOLDER HERE]
+    -- [TODO: A better solution would be to find a ModuleScript with all egg data, instead of scanning the workspace]
+    local mapsFolder = workspace.Game.Maps
     for _, mapInstance in pairs(mapsFolder:GetChildren()) do
-        if mapInstance:FindFirstChild("Eggs") then
+        if mapInstance:IsA("Folder") and mapInstance:FindFirstChild("Eggs") then
             for _, eggInstance in pairs(mapInstance.Eggs:GetChildren()) do
                 local priceLabel = eggInstance:FindFirstChild("Price.SurfaceGui.Label", true)
-                if priceLabel then
+                if priceLabel and priceLabel.Text and priceLabel.Text ~= "" then
                     local success, price = pcall(function() return tonumber(priceLabel.Text) end)
                     if success and typeof(price) == "number" then
                         table.insert(eggDataList, {Name = eggInstance.Name, Price = price})
@@ -103,10 +101,23 @@ local function getSortedEggList()
     return dropdownOptions
 end
 
-local eggOptions = getSortedEggList()
-if #eggOptions == 0 then table.insert(eggOptions, "No Eggs Found") end
+local initialEggOptions = getSortedEggList()
+if #initialEggOptions == 0 then table.insert(initialEggOptions, "No Eggs Found (Press Refresh)") end
 
-local EggDropdown = PetTab:CreateDropdown({ Name = "Select Egg", Options = eggOptions, CurrentOption = {eggOptions[1]}, MultipleOptions = false, Flag = "AutoHatchEggDropdown" })
+local EggDropdown = PetTab:CreateDropdown({ Name = "Select Egg", Options = initialEggOptions, CurrentOption = {initialEggOptions[1]}, MultipleOptions = false, Flag = "AutoHatchEggDropdown" })
+
+PetTab:CreateButton({
+    Name = "Refresh Egg List",
+    Callback = function()
+        local refreshedOptions = getSortedEggList()
+        if #refreshedOptions == 0 then
+            table.insert(refreshedOptions, "No Eggs Found (Enter a Map)")
+        end
+        EggDropdown:Refresh(refreshedOptions)
+        Rayfield:Notify({Title = "Success", Content = "Egg list has been updated.", Duration = 3, Image = "refresh-cw"})
+    end
+})
+
 _G.isAutoHatching = false
 local AutoHatchStatusButton = PetTab:CreateButton({Name = "Status: Idle", Callback = function() end})
 
@@ -119,7 +130,6 @@ PetTab:CreateToggle({
       if Value then
          task.spawn(function()
             local success, hatchRemote = pcall(function()
-                -- Using the new, more stable path you provided.
                 return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon"):WaitForChild("RE"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon")
             end)
             if not success or not hatchRemote then
@@ -127,7 +137,6 @@ PetTab:CreateToggle({
                 _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
                 return
             end
-
             local leaderstats = game:GetService("Players").LocalPlayer:WaitForChild("leaderstats")
             local clicksStat = leaderstats and leaderstats:FindFirstChild("\240\159\145\143 Clicks")
 
@@ -138,14 +147,12 @@ PetTab:CreateToggle({
                     local eggPrice = tonumber(eggPriceStr)
                     if clicksStat.Value >= eggPrice then
                         AutoHatchStatusButton:Set("Status: Hatching...")
-                        hatchRemote:FireServer(eggName, 1)
-                        task.wait(0.05)
+                        hatchRemote:FireServer(eggName, 1); task.wait(0.05)
                     else
-                        AutoHatchStatusButton:Set(string.format("Status: Waiting for %d clicks", eggPrice))
-                        task.wait(1)
+                        AutoHatchStatusButton:Set(string.format("Status: Waiting for %d clicks", eggPrice)); task.wait(1)
                     end
                 else
-                    AutoHatchStatusButton:Set("Status: Error parsing selection"); task.wait(1)
+                    AutoHatchStatusButton:Set("Status: No valid egg selected"); task.wait(1)
                 end
             end
             AutoHatchStatusButton:Set("Status: Idle")
