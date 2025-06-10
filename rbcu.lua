@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 3)
-    Master's Request: Fix script based on new error logs.
-    Functionality: UI Base, Live Stats Display, UI Control, Corrected Loading
+    Nexus-Lua Script (Version 4)
+    Master's Request: Add an Auto Click toggle.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click Farm
     Optimization: Mobile/Touchscreen, Robust Loading
 ]]
 
@@ -25,7 +25,7 @@ end)
 -- If fetching the name fails, use a default name
 local windowTitle = success and gameName or "Game Hub"
 
--- Create the main window. This will now work correctly.
+-- Create the main window.
 local Window = Rayfield:CreateWindow({
    Name = windowTitle,
    LoadingTitle = "Nexus-Lua Interface",
@@ -47,29 +47,51 @@ local ProfileTab = Window:CreateTab("Profile", "user-circle")
 local SettingsTab = Window:CreateTab("Settings", "settings-2")
 
 
+--============ CLICKS TAB ============--
+local ClicksSection = ClicksTab:CreateSection("Farming")
+
+-- This variable will control the auto-clicking loop
+_G.isAutoClicking = false
+
+ClicksTab:CreateToggle({
+   Name = "Auto Click",
+   CurrentValue = false,
+   Flag = "AutoClickToggle", -- Unique flag for config saving
+   Callback = function(Value)
+      _G.isAutoClicking = Value
+      
+      if Value then
+         task.spawn(function()
+            -- Define the remote once to avoid repeatedly searching for it
+            local clickRemote = --[[TODO: I NEED THE PATH HERE]]
+            local success, remote = pcall(function()
+                return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):GetChildren()[19]:WaitForChild("RE"):GetChildren()[3]
+            end)
+            
+            if not success or not remote then
+                Rayfield:Notify({Title = "Error", Content = "Auto Click remote not found.", Duration = 5})
+                _G.isAutoClicking = false
+                return -- Stop the function if the remote doesn't exist
+            end
+            
+            local args = {}
+            while _G.isAutoClicking do
+                remote:FireServer(unpack(args))
+                task.wait(0.05)
+            end
+         end)
+      end
+   end,
+})
+
+
 --============ PROFILE TAB ============--
 local ProfileSection = ProfileTab:CreateSection("Live Player Statistics")
 
--- Create buttons to display stats.
-local PlaytimeButton = ProfileTab:CreateButton({
-   Name = "Playtime: Loading...",
-   Callback = function() end,
-})
-
-local RebirthsButton = ProfileTab:CreateButton({
-   Name = "Rebirths: Loading...",
-   Callback = function() end,
-})
-
-local ClicksButton = ProfileTab:CreateButton({
-   Name = "Clicks: Loading...",
-   Callback = function() end,
-})
-
-local EggsButton = ProfileTab:CreateButton({
-   Name = "Eggs: Loading...",
-   Callback = function() end,
-})
+local PlaytimeButton = ProfileTab:CreateButton({ Name = "Playtime: Loading...", Callback = function() end })
+local RebirthsButton = ProfileTab:CreateButton({ Name = "Rebirths: Loading...", Callback = function() end })
+local ClicksButton = ProfileTab:CreateButton({ Name = "Clicks: Loading...", Callback = function() end })
+local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Callback = function() end })
 
 
 --============ SETTINGS TAB ============--
@@ -78,31 +100,26 @@ local SettingsSection = SettingsTab:CreateSection("Interface Control")
 SettingsTab:CreateButton({
    Name = "Destroy UI",
    Callback = function()
-      Rayfield:Destroy() -- This function destroys the entire user interface
+      Rayfield:Destroy()
    end,
 })
 
 
 --============ LIVE DATA UPDATER ============--
--- This function runs in the background to keep the stats updated.
 spawn(function()
     local Player = game:GetService("Players").LocalPlayer
-    local leaderstats = Player:WaitForChild("leaderstats") -- Wait for leaderstats to load to prevent errors
-    local startTime = tick() -- Record the time the script started to calculate playtime
+    local leaderstats = Player:WaitForChild("leaderstats")
+    local startTime = tick()
 
-    -- This loop runs forever to provide live data
-    while wait(1) do
-        -- This pcall checks if the script is still running. If not, it stops the loop to prevent errors.
+    while task.wait(1) do
         if not pcall(function() RebirthsButton:Set(" ") end) then break end
 
-        -- Update Playtime
         local elapsedTime = tick() - startTime
         local hours = math.floor(elapsedTime / 3600)
         local minutes = math.floor((elapsedTime % 3600) / 60)
         local seconds = math.floor(elapsedTime % 60)
         PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d", hours, minutes, seconds))
 
-        -- Update Rebirths Stat
         local rebirthsValue = leaderstats and leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths")
         if rebirthsValue then
             RebirthsButton:Set("Rebirths: " .. tostring(rebirthsValue.Value))
@@ -110,7 +127,6 @@ spawn(function()
             RebirthsButton:Set("Rebirths: Not Found")
         end
         
-        -- Update Clicks Stat
         local clicksValue = leaderstats and leaderstats:FindFirstChild("\240\159\145\143 Clicks")
         if clicksValue then
             ClicksButton:Set("Clicks: " .. tostring(clicksValue.Value))
@@ -118,7 +134,6 @@ spawn(function()
             ClicksButton:Set("Clicks: Not Found")
         end
 
-        -- Update Eggs Stat
         local eggsValue = leaderstats and leaderstats:FindFirstChild("\240\159\165\154 Eggs")
         if eggsValue then
             EggsButton:Set("Eggs: " .. tostring(eggsValue.Value))
