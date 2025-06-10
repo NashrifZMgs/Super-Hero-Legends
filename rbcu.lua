@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 6)
-    Master's Request: Implement a dynamic, price-aware Auto-Hatch system.
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch
+    Nexus-Lua Script (Version 7)
+    Master's Request: Diagnose and fix the "compare nil" error.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Error Corrected)
     Optimization: Mobile/Touchscreen, Robust Loading, Dynamic Data
 ]]
 
@@ -76,7 +76,7 @@ ClicksTab:CreateToggle({
 --============ PET TAB ============--
 local PetSection = PetTab:CreateSection("Auto Hatch")
 
--- Function to find all eggs and their prices, then sort them
+-- CORRECTED: Function to find all eggs and their prices, then sort them
 local function getSortedEggList()
     local eggDataList = {}
     local mapsFolder = workspace.Game.Maps
@@ -87,7 +87,8 @@ local function getSortedEggList()
                 local priceLabel = eggInstance:FindFirstChild("Price", true) and eggInstance.Price:FindFirstChild("SurfaceGui", true) and eggInstance.Price.SurfaceGui:FindFirstChild("Label")
                 if priceLabel then
                     local success, price = pcall(function() return tonumber(priceLabel.Text) end)
-                    if success then
+                    -- FIX: Ensure price is a valid number before adding to the list
+                    if success and typeof(price) == "number" then
                         table.insert(eggDataList, {Name = eggInstance.Name, Price = price})
                     end
                 end
@@ -95,6 +96,7 @@ local function getSortedEggList()
         end
     end
     
+    -- This sort function will now only receive valid numbers
     table.sort(eggDataList, function(a, b) return a.Price < b.Price end)
     
     local dropdownOptions = {}
@@ -155,7 +157,7 @@ PetTab:CreateToggle({
                         task.wait(0.05)
                     else
                         AutoHatchStatusButton:Set(string.format("Status: Waiting for %d clicks", eggPrice))
-                        task.wait(1) -- Wait longer if we can't afford it
+                        task.wait(1)
                     end
                 else
                     AutoHatchStatusButton:Set("Status: Error")
