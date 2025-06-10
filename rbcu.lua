@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 12)
-    Master's Request: Fix the "Select Egg Callback Error".
-    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch (Callback Fixed)
+    Nexus-Lua Script (Version 13)
+    Master's Request: Fix persistent callback error and add a Restart feature.
+    Functionality: UI Base, Live Stats, UI Control, Auto Click, Auto Hatch, Script Restart
     Optimization: Mobile/Touchscreen, Robust Loading, Unloaded Map Compatibility
 ]]
 
@@ -71,9 +71,7 @@ local function getEggNames()
     for _, mapInstance in pairs(mapsFolder:GetChildren()) do
         if mapInstance:IsA("Folder") and mapInstance:FindFirstChild("Eggs") then
             for _, eggInstance in pairs(mapInstance.Eggs:GetChildren()) do
-                if eggInstance:IsA("Model") then
-                    table.insert(eggNames, eggInstance.Name)
-                end
+                if eggInstance:IsA("Model") then table.insert(eggNames, eggInstance.Name) end
             end
         end
     end
@@ -90,48 +88,37 @@ local EggDropdown = PetTab:CreateDropdown({
     CurrentOption = {allEggNames[1]},
     MultipleOptions = false,
     Flag = "EggNameDropdown",
-    -- FIX: Added the required empty callback to prevent the error.
-    Callback = function()
-    end,
+    -- FIX: The callback has been completely removed to prevent the error.
 })
 
 _G.isAutoHatching = false
 local AutoHatchStatusButton = PetTab:CreateButton({Name = "Status: Idle", Callback = function() end})
 
 PetTab:CreateToggle({
-   Name = "Auto Hatch Selected Egg",
-   CurrentValue = false,
-   Flag = "AutoHatchToggle",
+   Name = "Auto Hatch Selected Egg", CurrentValue = false, Flag = "AutoHatchToggle",
    Callback = function(Value)
       _G.isAutoHatching = Value
       if Value then
          task.spawn(function()
-            local success, hatchRemote = pcall(function()
-                return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon"):WaitForChild("RE"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon")
-            end)
-            if not success or not hatchRemote then
+            local s, hR = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon"):WaitForChild("RE"):WaitForChild("jag k\195\164nner en bot, hon heter anna, anna heter hon") end)
+            if not s or not hR then
                 Rayfield:Notify({Title = "Error", Content = "Hatching remote not found. Path may need updating.", Duration = 7, Image = "alert-circle"})
                 _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
                 return
             end
-
             while _G.isAutoHatching do
                 local selectedEggName = EggDropdown.CurrentOption[1]
                 if selectedEggName and selectedEggName ~= "No Eggs Found In Workspace" then
                     AutoHatchStatusButton:Set("Status: Hatching " .. selectedEggName)
-                    hatchRemote:FireServer(selectedEggName, 1)
-                    task.wait(0.05)
+                    hR:FireServer(selectedEggName, 1); task.wait(0.05)
                 else
                     AutoHatchStatusButton:Set("Status: No valid egg selected")
-                    _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false)
-                    break
+                    _G.isAutoHatching = false; Rayfield.Flags.AutoHatchToggle:Set(false); break
                 end
             end
             AutoHatchStatusButton:Set("Status: Idle")
          end)
-      else
-        AutoHatchStatusButton:Set("Status: Idle")
-      end
+      else AutoHatchStatusButton:Set("Status: Idle") end
    end,
 })
 
@@ -146,8 +133,29 @@ local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Callback
 
 --============ SETTINGS TAB ============--
 local SettingsSection = SettingsTab:CreateSection("Interface Control")
-SettingsTab:CreateButton({ Name = "Destroy UI", Callback = function() Rayfield:Destroy() end })
 
+SettingsTab:CreateButton({
+    Name = "Destroy UI",
+    Callback = function() Rayfield:Destroy() end
+})
+
+-- NEW: Restart button as requested.
+SettingsTab:CreateButton({
+    Name = "Restart Script",
+    Callback = function()
+        Rayfield:Notify({ Title = "Restarting", Content = "Script will restart in 3 seconds.", Duration = 3, Image = "loader" })
+        Rayfield:Destroy()
+        task.wait(3)
+        
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))()
+        end)
+
+        if not success then
+            warn("Nexus-Lua: Restart failed. Error: " .. tostring(err))
+        end
+    end
+})
 
 --============ LIVE DATA UPDATER ============--
 spawn(function()
