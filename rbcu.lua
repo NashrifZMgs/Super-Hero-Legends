@@ -1,7 +1,8 @@
 --[[
     Nexus-Lua Script
-    Update: Enhanced Auto Rebirth and Auto Hatch to use native game functions
-    discovered with the Interrogator. This is more efficient and reliable.
+    Update: Reverted automation to use direct commands (:Fire(), :rebirth())
+    within our own loops for maximum reliability, as per Master's diagnosis.
+    The native switches (:setIsAuto...) were found to be unreliable.
 ]]
 
 -- Load the Rayfield User Interface Library
@@ -34,23 +35,37 @@ local DataController = Knit.GetController('DataController'); DataController:wait
 local RebirthsModule = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("List"):WaitForChild("Rebirths"))
 local EggsModule = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("List"):WaitForChild("Pets"):WaitForChild("Eggs"))
 
+-- Loop control variables
+local autoClicking, autoRebirthing, autoHatching = false, false, false
+
 local function formatSuffix(number)
     local s = {"", "K", "M", "B", "T", "Q", "Qi", "S", "O"}; local i=1
     while number >= 1e3 and i < #s do number, i = number / 1e3, i + 1 end
     return ("%.1f"):format(number)..s[i]
 end
 
--- ================== Clicks Tab ==================
+-- ================== Clicks Tab (Reverted to Reliable Loop) ==================
 ClicksTab:CreateSection("Automation")
 ClicksTab:CreateToggle({
-   Name = "Auto Click (Native)", CurrentValue = false, Flag = "AutoClickToggle",
+   Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle",
    Callback = function(Value)
-      pcall(function() ClickService.setIsAutoClicking(Value) end)
-      Rayfield:Notify({Title = "Native Auto Click", Content = "Set to: " .. tostring(Value), Duration = 3, Image = "mouse-pointer-click"})
+      autoClicking = Value
+      Rayfield:Notify({Title = "Auto Click", Content = "Set to: " .. tostring(Value), Duration = 3, Image = "mouse-pointer-click"})
+      
+      -- We now control the loop ourselves for reliability.
+      task.spawn(function()
+          while autoClicking do
+              pcall(function()
+                  -- As confirmed by the reference script, this is the direct command.
+                  ClickService.click:Fire()
+              end)
+              task.wait() -- A small wait to prevent crashing.
+          end
+      end)
    end,
 })
 
--- ================== Pet Tab (ENHANCED) ==================
+-- ================== Pet Tab (Reverted to Reliable Loop) ==================
 PetTab:CreateSection("Egg Hatching")
 local eggOptions = {}
 for name, data in pairs(EggsModule) do
@@ -60,35 +75,31 @@ for name, data in pairs(EggsModule) do
 end
 local EggDropdown = PetTab:CreateDropdown({Name = "Select Egg", Options = eggOptions, CurrentOption = {eggOptions[1] or "None"}, Flag = "EggDropdown"})
 
--- This now uses the game's own auto-hatcher.
--- Note: This will likely hatch the egg selected in the GAME'S UI, not necessarily our dropdown.
--- Our dropdown is now mainly for the manual "Hatch Once" button below.
 PetTab:CreateToggle({
-   Name = "Auto Hatch (Native)", CurrentValue = false, Flag = "AutoHatchToggle",
+   Name = "Auto Hatch Selected Egg", CurrentValue = false, Flag = "AutoHatchToggle",
    Callback = function(Value)
-        pcall(function() EggService:setIsAutoHatching(Value) end)
-        Rayfield:Notify({Title = "Native Auto Hatch", Content = "Set to: " .. tostring(Value), Duration = 3, Image = "egg"})
+        autoHatching = Value
+        Rayfield:Notify({Title = "Auto Hatch", Content = "Set to: " .. tostring(Value), Duration = 3, Image = "egg"})
+        
+        -- Our own reliable loop for hatching.
+        task.spawn(function()
+            while autoHatching do
+                local selectedOption = EggDropdown.CurrentOption[1]
+                if selectedOption and selectedOption ~= "None" then
+                    local eggName = selectedOption:match("^(%S+)")
+                    pcall(function()
+                        -- Firing the openEgg event directly.
+                        EggService.openEgg:Fire(eggName, 1)
+                    end)
+                end
+                task.wait(1) -- Wait between hatches.
+            end
+        end)
    end,
 })
 
--- Added a manual hatch button for precise control
-PetTab:CreateButton({
-    Name = "Hatch Selected Egg Once",
-    Callback = function()
-        local selectedOption = EggDropdown.CurrentOption[1]
-        if selectedOption and selectedOption ~= "None" then
-            local eggName = selectedOption:match("^(%S+)")
-            pcall(function() EggService:openEgg(eggName, 1) end)
-            Rayfield:Notify({Title = "Hatch", Content = "Attempted to hatch one " .. eggName .. " egg.", Duration = 3, Image = "egg"})
-        end
-    end,
-})
-
-
--- ================== Upgrades Tab (ENHANCED) ==================
+-- ================== Upgrades Tab (Reverted to Reliable Loop) ==================
 UpgradesTab:CreateSection("Rebirthing")
-
--- The dropdown is still useful for manual rebirths or if the auto-rebirth targets a specific amount.
 local rebirthOptions, rebirthValueMap = {"Best Available"}, {["Best Available"] = "best"}
 for i, amount in pairs(RebirthsModule) do
     local name = string.format("Buy %s Rebirths", formatSuffix(amount))
@@ -97,12 +108,29 @@ for i, amount in pairs(RebirthsModule) do
 end
 local RebirthDropdown = UpgradesTab:CreateDropdown({Name = "Rebirth Amount", Options = rebirthOptions, CurrentOption = {"Best Available"}, Flag = "RebirthDropdown"})
 
--- This now uses the game's own auto-rebirther.
 UpgradesTab:CreateToggle({
-   Name = "Auto Rebirth (Native)", CurrentValue = false, Flag = "AutoRebirthToggle",
+   Name = "Auto Rebirth", CurrentValue = false, Flag = "AutoRebirthToggle",
    Callback = function(Value)
-        pcall(function() RebirthService:setIsAutoRebirthing(Value) end)
-        Rayfield:Notify({Title = "Native Auto Rebirth", Content = "Set to: " .. tostring(Value), Duration = 3, Image = "refresh-cw"})
+        autoRebirthing = Value
+        Rayfield:Notify({Title = "Auto Rebirth", Content = "Set to: " .. tostring(Value), Duration = 3, Image = "refresh-cw"})
+
+        -- Our own reliable loop for rebirthing.
+        task.spawn(function()
+            while autoRebirthing do
+                local selectedOption = RebirthDropdown.CurrentOption[1]
+                if selectedOption then
+                    local rebirthIndex = rebirthValueMap[selectedOption]
+                    if rebirthIndex == "best" then
+                        local bestOption = 1
+                        for i, _ in pairs(RebirthsModule) do if RebirthService:canAfford(i) then bestOption = math.max(bestOption, i) end end
+                        rebirthIndex = bestOption
+                    end
+                    -- Calling the :rebirth() function directly.
+                    pcall(function() RebirthService:rebirth(rebirthIndex) end)
+                end
+                task.wait(0.5) -- Check every half-second.
+            end
+        end)
    end,
 })
 
