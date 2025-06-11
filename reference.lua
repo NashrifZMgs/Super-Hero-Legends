@@ -1,14 +1,4 @@
-```lua
--- Chat AI
--- Hello! Is there any question I can help you with?
--- What is the highest peak in the United States?
--- How to save chat content in QuestionAI?
 
--- Ask AI
--- Caution
--- Refresh this page to activate the extension on this page.
--- Refresh
--- Feedback
 
 local SCRIPT_DATA = {
     {
