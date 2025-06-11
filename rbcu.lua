@@ -57,7 +57,7 @@ ClicksTab:CreateToggle({
           while autoClicking do
               pcall(function()
                   -- As confirmed by the reference script, this is the direct command.
-                  ClickService.click2:Fire()
+                  ClickService.click:Fire()
               end)
               task.wait() -- A small wait to prevent crashing.
           end
