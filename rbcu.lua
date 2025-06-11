@@ -89,7 +89,7 @@ PetTab:CreateToggle({
                     local eggName = selectedOption:match("^(%S+)")
                     pcall(function()
                         -- Firing the openEgg event directly.
-                        EggService.openEgg:Fire(eggName, 1)
+                        EggService.openEgg:Fire(eggName, 2)
                     end)
                 end
                 task.wait(1) -- Wait between hatches.
