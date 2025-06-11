@@ -66,7 +66,7 @@ end)end end})
 
 local UpgradeFarmSection=UpgradesTab:CreateSection("Upgrade Farm")
 -- CORRECTED: The service index is now 22 and the RF index is 3, as per your instruction.
-local FARM_SERVICE_INDEX, FARM_RF_INDEX = 22, 3
+local FARM_SERVICE_INDEX,FARM_RF_INDEX = 22, 3
 local function getFarmNames() local n={"farmer"};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("FarmingMachineFrame",5):WaitForChild("Displays",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5);if h then for _,i in pairs(h:GetChildren())do if i.Name~="UIListLayout" and i.Name~="YourFarmText" then table.insert(n,i.Name)end end end;table.sort(n);return n end
 local allFarmNames=getFarmNames()
 local FarmDropdown=UpgradesTab:CreateDropdown({Name="Select Farm Item(s)",Options=allFarmNames,MultipleOptions=true,Flag="FarmItemDropdown"})
