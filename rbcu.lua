@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 40 - Amplified Hunter)
-    Master's Request: Apply Signal Amplification to the Auto Hatch scanner.
-    Functionality: Auto Hatch scanner is now more reliable; Auto Rebirth scanner retains the superior "Golden Signal" method.
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, Amplified Signal Detection.
+    Nexus-Lua Script (Version 42 - Active Polling Hunter)
+    Master's Request: Fix rebirth detection by actively polling for the result, making it immune to latency.
+    Functionality: The rebirth scanner is now equipped with a patient, active polling mechanism.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Latency-Resistant Detection.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -52,19 +52,25 @@ function Finder:ScanAndStore(profile)
             if profile.KnownName and remote.Name ~= profile.KnownName then continue end
             attempts = attempts + 1
             
-            local statObject = leaderstats:FindFirstChild(profile.StatName)
-            if not statObject then failureReason = "Leaderstat '"..profile.StatName.."' not found."; break end
-            
             if profile.CacheKey == "RebirthRemote" then
                 if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
                 local clicksBaseline = leaderstats["\240\159\145\143 Clicks"].Value
-                local rebirthsBaseline = statObject.Value
-                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.25)
-                if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then foundRemote = remote
-                elseif statObject.Value > rebirthsBaseline then foundRemote = remote end
+                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
+                
+                -- UPGRADED: Actively poll for the result for up to 1 second.
+                for i = 1, 50 do -- Poll for ~1 second (50 * ~0.02s wait)
+                    task.wait()
+                    if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then
+                        foundRemote = remote
+                        break
+                    end
+                end
+                
             else -- Logic for Click and Hatch
+                local statObject = leaderstats:FindFirstChild(profile.StatName)
+                if not statObject then failureReason = "Leaderstat '"..profile.StatName.."' not found."; break end
                 local baseline = statObject.Value
-                for i = 1, 5 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                for i = 1, 10 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
                 if statObject.Value > baseline then foundRemote = remote end
             end
@@ -111,7 +117,7 @@ ClicksTab:CreateToggle({Name="Auto Rebirth",CurrentValue=false,Flag="AutoRebirth
     })
 end})
 
---============ PET TAB (UPGRADED SCANNER) ============--
+--============ PET TAB ============--
 PetTab:CreateSection("Auto Hatch")
 local function getEggNames()local n={};local m=workspace.Game.Maps;for _,i in pairs(m:GetChildren())do if i:IsA("Folder")and i:FindFirstChild("Eggs")then for _,e in pairs(i.Eggs:GetChildren())do if e:IsA("Model")then table.insert(n,e.Name)end end end end;table.sort(n);return n end
 local allEggNames=getEggNames();if #allEggNames==0 then table.insert(allEggNames,"No Eggs Found")end
@@ -119,7 +125,6 @@ local EggDropdown=PetTab:CreateDropdown({Name="Select Egg",Options=allEggNames,C
 _G.isAutoHatching=false;local AutoHatchStatusButton=PetTab:CreateButton({Name="Status: Idle",Callback=function()end})
 PetTab:CreateToggle({Name="Auto Hatch Selected Egg (x3)",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(v)
     _G.isAutoHatching=v; if not v then AutoHatchStatusButton:Set("Status: Idle"); return end
-    -- The scanner now uses signal amplification for hatching as well.
     Finder:ScanAndStore({ Name = "Auto Hatch", CacheKey = "HatchRemote", Flag = "AutoHatchToggle", StatName = "\240\159\165\154 Eggs", RemoteType = "RE", FireMethod = "FireServer", TestArgs = {"Basic", 1},
         Callback = function(remote) while _G.isAutoHatching do local sel=EggDropdown.CurrentOption[1];if sel and sel~="No Eggs Found"then AutoHatchStatusButton:Set("Status: Hatching "..sel);pcall(remote.FireServer,remote,sel,2)task.wait(0.05)else AutoHatchStatusButton:Set("Status: No egg selected");_G.isAutoHatching=false;Rayfield.Flags.AutoHatchToggle:Set(false);break end end;AutoHatchStatusButton:Set("Status: Idle") end
     })
