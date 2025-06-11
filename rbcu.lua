@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 42 - Active Polling Hunter)
-    Master's Request: Fix rebirth detection by actively polling for the result, making it immune to latency.
-    Functionality: The rebirth scanner is now equipped with a patient, active polling mechanism.
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, Latency-Resistant Detection.
+    Nexus-Lua Script (Version 41 - Precision Hunter)
+    Master's Request: Refine the scanner to use the pure "Golden Signal" for rebirths and increase signal amplification to 10x.
+    Functionality: All hunter features now use the most precise and powerful detection logic.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Maximum Signal-to-Noise Ratio.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -55,21 +55,16 @@ function Finder:ScanAndStore(profile)
             if profile.CacheKey == "RebirthRemote" then
                 if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
                 local clicksBaseline = leaderstats["\240\159\145\143 Clicks"].Value
-                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
-                
-                -- UPGRADED: Actively poll for the result for up to 1 second.
-                for i = 1, 50 do -- Poll for ~1 second (50 * ~0.02s wait)
-                    task.wait()
-                    if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then
-                        foundRemote = remote
-                        break
-                    end
+                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.25)
+                -- FIX: Now only checks for the "Golden Signal" of clicks resetting to zero.
+                if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then
+                    foundRemote = remote
                 end
-                
             else -- Logic for Click and Hatch
                 local statObject = leaderstats:FindFirstChild(profile.StatName)
                 if not statObject then failureReason = "Leaderstat '"..profile.StatName.."' not found."; break end
                 local baseline = statObject.Value
+                -- UPGRADED: Burst-fire increased to 10x for maximum signal amplification.
                 for i = 1, 10 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
                 if statObject.Value > baseline then foundRemote = remote end
