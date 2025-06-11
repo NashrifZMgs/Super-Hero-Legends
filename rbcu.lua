@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 44 - High-Precision Engine)
-    Master's Request: Implement number conversion for large stats and refine scanning logic.
-    Functionality: All hunter features now use a number converter and 10x signal amplification for maximum precision.
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, High-Precision Detection.
+    Nexus-Lua Script (Version 45 - Rapid Scan Engine)
+    Master's Request: Revert signal amplification to 5x for a faster scanning process.
+    Functionality: All hunter features now use a faster 5x signal amplification.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Rapid Scanning.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -25,8 +25,10 @@ local Finder = {}
 local Player = game:GetService("Players").LocalPlayer
 local leaderstats = Player:WaitForChild("leaderstats")
 
--- NEW: Utility to convert abbreviated numbers (e.g., "1.5B") into actual numbers.
+-- Utility to convert abbreviated numbers (e.g., "1.5B") into actual numbers.
 local function ConvertToNumber(str)
+    if typeof(str) == "number" then return str end
+    if typeof(str) ~= "string" then return 0 end
     local suffixes = {K=3,M=6,B=9,T=12,Qa=15,Qi=18,Sx=21,Sp=24,Oc=27,No=30,De=33}
     local num, suf = str:match("([%d,%.]+)(%a*)")
     if not num then return 0 end
@@ -64,19 +66,17 @@ function Finder:PerformScan(profile)
             if profile.CacheKey == "RebirthRemote" then
                 if attempts > 30 then return nil, "Scan limit of 30 attempts reached." end
                 local clicksBaseline = ConvertToNumber(leaderstats["\240\159\145\143 Clicks"].Value)
-                local rebirthsBaseline = ConvertToNumber(statObject.Value)
-
-                for i = 1, 10 do pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                -- REVERTED: Rebirth scan now uses 5x amplification for faster scanning.
+                for i = 1, 5 do pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
                 
                 if ConvertToNumber(leaderstats["\240\159\145\143 Clicks"].Value) == 0 and clicksBaseline > 0 then
                     return remote
-                elseif ConvertToNumber(statObject.Value) > rebirthsBaseline then
-                    return remote
                 end
             else
                 local baseline = ConvertToNumber(statObject.Value)
-                for i = 1, 10 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                -- REVERTED: Burst-fire reverted to 5x for faster scanning.
+                for i = 1, 5 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
                 if ConvertToNumber(statObject.Value) > baseline then
                     return remote
