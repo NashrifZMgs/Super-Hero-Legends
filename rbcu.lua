@@ -59,7 +59,7 @@ ClicksTab:CreateToggle({
                   -- As confirmed by the reference script, this is the direct command.
                   ClickService.click:Fire()
               end)
-              task.wait() -- A small wait to prevent crashing.
+              task.wait(0.01) -- A small wait to prevent crashing.
           end
       end)
    end,
@@ -70,7 +70,7 @@ PetTab:CreateSection("Egg Hatching")
 local eggOptions = {}
 for name, data in pairs(EggsModule) do
     if not data.requiredMap or (DataController.data and DataController.data.maps[data.requiredMap]) then
-        table.insert(eggOptions, string.format("%s Egg | %s Gems", name, formatSuffix(data.cost)))
+        table.insert(eggOptions, string.format("%s Egg | %s Clicks", name, formatSuffix(data.cost)))
     end
 end
 local EggDropdown = PetTab:CreateDropdown({Name = "Select Egg", Options = eggOptions, CurrentOption = {eggOptions[1] or "None"}, Flag = "EggDropdown"})
@@ -92,7 +92,7 @@ PetTab:CreateToggle({
                         EggService.openEgg:Fire(eggName, 2)
                     end)
                 end
-                task.wait(1) -- Wait between hatches.
+                task.wait(0.05) -- Wait between hatches.
             end
         end)
    end,
