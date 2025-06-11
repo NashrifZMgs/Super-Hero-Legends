@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 42 - Active Polling Hunter)
-    Master's Request: Fix rebirth detection by actively polling for the result, making it immune to latency.
-    Functionality: The rebirth scanner is now equipped with a patient, active polling mechanism.
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, Latency-Resistant Detection.
+    Nexus-Lua Script (Version 43 - Logic Control Hunter)
+    Master's Request: Fix the scanner's control flow to correctly stop upon successful detection.
+    Functionality: The scanner now uses a robust early-return method, ensuring it halts instantly when a remote is found.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Robust Control Flow.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -35,17 +35,12 @@ StatusLabel.Size = UDim2.new(0.8,0,0.2,0); StatusLabel.Position = UDim2.new(0.1,
 function Finder:ShowMessage(message) StatusLabel.Text = message; InputBlocker.Enabled = true end
 function Finder:Hide() InputBlocker.Enabled = false end
 
-function Finder:ScanAndStore(profile)
-    if _G.FoundRemotes[profile.CacheKey] then profile.Callback(_G.FoundRemotes[profile.CacheKey]); return end
-    self:ShowMessage("SCANNING: Acquiring " .. profile.Name .. " Remote...\nPlease wait and do not interact.")
-    task.wait()
-    
+-- This is the core scanning logic, now refactored to use an early return.
+function Finder:PerformScan(profile)
     local success, Services = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages",10):WaitForChild("Knit",10):WaitForChild("Services",10) end)
-    if not success or not Services then self:ShowMessage("FAILURE: Could not find Services folder."); task.wait(3); self:Hide(); return end
+    if not success or not Services then return nil, "Could not find Services folder." end
     
-    local foundRemote, failureReason = nil, "Could not identify " .. profile.Name .. " Remote."
     local attempts = 0
-
     for _, service in ipairs(Services:GetChildren()) do
         local remoteFolder = service:FindFirstChild(profile.RemoteType)
         if remoteFolder then for _, remote in ipairs(remoteFolder:GetChildren()) do
@@ -53,32 +48,37 @@ function Finder:ScanAndStore(profile)
             attempts = attempts + 1
             
             if profile.CacheKey == "RebirthRemote" then
-                if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
+                if attempts > 40 then return nil, "Scan limit of 40 attempts reached." end
                 local clicksBaseline = leaderstats["\240\159\145\143 Clicks"].Value
                 pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
                 
-                -- UPGRADED: Actively poll for the result for up to 1 second.
-                for i = 1, 50 do -- Poll for ~1 second (50 * ~0.02s wait)
+                for i = 1, 50 do
                     task.wait()
                     if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then
-                        foundRemote = remote
-                        break
+                        return remote -- SUCCESS: Return the found remote immediately.
                     end
                 end
-                
-            else -- Logic for Click and Hatch
+            else
                 local statObject = leaderstats:FindFirstChild(profile.StatName)
-                if not statObject then failureReason = "Leaderstat '"..profile.StatName.."' not found."; break end
+                if not statObject then return nil, "Leaderstat '"..profile.StatName.."' not found." end
                 local baseline = statObject.Value
                 for i = 1, 10 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
-                if statObject.Value > baseline then foundRemote = remote end
+                if statObject.Value > baseline then
+                    return remote -- SUCCESS: Return the found remote immediately.
+                end
             end
-            
-            if foundRemote then break end
         end end
-        if foundRemote or (profile.CacheKey == "RebirthRemote" and attempts > 40) then break end
     end
+    return nil, "Could not identify " .. profile.Name .. " Remote." -- FAILURE: Return nil if loop finishes.
+end
+
+function Finder:ScanAndStore(profile)
+    if _G.FoundRemotes[profile.CacheKey] then profile.Callback(_G.FoundRemotes[profile.CacheKey]); return end
+    self:ShowMessage("SCANNING: Acquiring " .. profile.Name .. " Remote...\nPlease wait and do not interact.")
+    task.wait()
+    
+    local foundRemote, failureReason = self:PerformScan(profile)
 
     if foundRemote then
         _G.FoundRemotes[profile.CacheKey] = foundRemote
@@ -112,7 +112,7 @@ local RebirthDropdown=ClicksTab:CreateDropdown({Name="Select Rebirth Tier",Optio
 _G.isAutoRebirthing=false
 ClicksTab:CreateToggle({Name="Auto Rebirth",CurrentValue=false,Flag="AutoRebirthToggle",Callback=function(v)
     _G.isAutoRebirthing=v; if not v then return end
-    Finder:ScanAndStore({ Name = "Auto Rebirth", CacheKey = "RebirthRemote", Flag = "AutoRebirthToggle", StatName = "\226\153\187\239\184\143 Rebirths", RemoteType = "RF", FireMethod = "InvokeServer", KnownName = "jag känner en bot, hon heter anna, anna heter hon", TestArgs = {1},
+    Finder:ScanAndStore({ Name = "Auto Rebirth", CacheKey = "RebirthRemote", Flag = "AutoRebirthToggle", RemoteType = "RF", KnownName = "jag känner en bot, hon heter anna, anna heter hon", TestArgs = {1},
         Callback = function(remote) while _G.isAutoRebirthing do local id=table.find(rebirthOpts,RebirthDropdown.CurrentOption[1]);if id then pcall(remote.InvokeServer,remote,id)task.wait(0.5)end end end
     })
 end})
