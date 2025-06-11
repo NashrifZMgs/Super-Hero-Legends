@@ -32,7 +32,7 @@ ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "Auto
 end})
 
 local RebirthSection = ClicksTab:CreateSection("Auto Rebirth")
-local REBIRTH_SERVICE_INDEX = 6
+local REBIRTH_SERVICE_INDEX = 12
 local rebirthOpts = {"1 Rebirth","5 Rebirths","10 Rebirths","25 Rebirths","50 Rebirths","100 Rebirths","200 Rebirths","500 Rebirths","1k Rebirths","2.5k Rebirths","Rebirth 11","Rebirth 12","Rebirth 13","Rebirth 14","Rebirth 15","Rebirth 16","Rebirth 17","Rebirth 18","Rebirth 19","Rebirth 20","Rebirth 21","Rebirth 22","Rebirth 23","Rebirth 24","Rebirth 25","Rebirth 26","Rebirth 27","Rebirth 28","Rebirth 29","Rebirth 30","Rebirth 31","Rebirth 32","Rebirth 33","Rebirth 34","Rebirth 35","Rebirth 36"}
 local RebirthDropdown = ClicksTab:CreateDropdown({Name="Select Rebirth Tier",Options=rebirthOpts,CurrentOption={rebirthOpts[1]},MultipleOptions=false,Flag="RebirthTierDropdown"})
 _G.isAutoRebirthing = false
