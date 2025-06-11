@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 37 - Hunter Fixed)
-    Master's Request: Fix the "Modal is not a valid member" error.
-    Functionality: All features stable, with a corrected and functional input-blocking overlay.
-    Optimization: Autonomous remote finding, failsafe input blocking, correct UI implementation.
+    Nexus-Lua Script (Version 38 - Dual-Signal Hunter)
+    Master's Request: Implement and test the advanced behavioral analysis scanner.
+    Functionality: Auto Click (Signal Amplification), Auto Rebirth (Dual-Signal Detection), Auto Hatch (Standard Scan).
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Focused Intelligence.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -17,7 +17,7 @@ local windowTitle = success and gameName or "Game Hub"
 local Window = Rayfield:CreateWindow({ Name = windowTitle, LoadingTitle = "Nexus-Lua Interface", LoadingSubtitle = "Loading Script...", ConfigurationSaving = { Enabled = true, FileName = windowTitle .. " Hub" }, KeySystem = false })
 
 --===================================================================--
---                       AUTONOMOUS FINDER MODULE                    --
+--               ADVANCED AUTONOMOUS FINDER MODULE                 --
 --===================================================================--
 _G.FoundRemotes = {}
 
@@ -25,31 +25,12 @@ local Finder = {}
 local Player = game:GetService("Players").LocalPlayer
 local leaderstats = Player:WaitForChild("leaderstats")
 
--- This is the failsafe overlay that blocks all user input during a scan.
 local InputBlocker = Instance.new("ScreenGui", game.CoreGui)
-InputBlocker.Name = "InputBlocker_NexusLua"
-InputBlocker.Enabled = false
-InputBlocker.ZIndexBehavior = Enum.ZIndexBehavior.Global
-
--- FIX: Changed from a Frame to a TextButton, which supports the Modal property.
+InputBlocker.Name = "InputBlocker_NexusLua"; InputBlocker.Enabled = false; InputBlocker.ZIndexBehavior = Enum.ZIndexBehavior.Global
 local BlockerButton = Instance.new("TextButton", InputBlocker)
-BlockerButton.Size = UDim2.new(1, 0, 1, 0)
-BlockerButton.Position = UDim2.new(0, 0, 0, 0)
-BlockerButton.BackgroundColor3 = Color3.new(0, 0, 0)
-BlockerButton.BackgroundTransparency = 0.5
-BlockerButton.Modal = true -- This now works correctly.
-BlockerButton.Text = "" -- Ensure no text is visible on the button.
-BlockerButton.ZIndex = 999
-
+BlockerButton.Size = UDim2.new(1,0,1,0); BlockerButton.BackgroundColor3 = Color3.new(0,0,0); BlockerButton.BackgroundTransparency = 0.5; BlockerButton.Modal = true; BlockerButton.Text = ""; BlockerButton.ZIndex = 999
 local StatusLabel = Instance.new("TextLabel", BlockerButton)
-StatusLabel.Size = UDim2.new(0.8, 0, 0.2, 0)
-StatusLabel.Position = UDim2.new(0.1, 0, 0.4, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.TextColor3 = Color3.new(1, 1, 1)
-StatusLabel.Font = Enum.Font.SourceSansBold
-StatusLabel.TextScaled = true
-StatusLabel.TextWrapped = true
-StatusLabel.ZIndex = 1000
+StatusLabel.Size = UDim2.new(0.8,0,0.2,0); StatusLabel.Position = UDim2.new(0.1,0,0.4,0); StatusLabel.BackgroundTransparency=1; StatusLabel.TextColor3 = Color3.new(1,1,1); StatusLabel.Font=Enum.Font.SourceSansBold; StatusLabel.TextScaled=true; StatusLabel.TextWrapped=true; StatusLabel.ZIndex = 1000
 
 function Finder:ShowMessage(message) StatusLabel.Text = message; InputBlocker.Enabled = true end
 function Finder:Hide() InputBlocker.Enabled = false end
@@ -58,21 +39,58 @@ function Finder:ScanAndStore(profile)
     if _G.FoundRemotes[profile.CacheKey] then profile.Callback(_G.FoundRemotes[profile.CacheKey]); return end
     self:ShowMessage("SCANNING: Acquiring " .. profile.Name .. " Remote...\nPlease wait and do not interact.")
     task.wait()
-    local success, Services = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages", 10):WaitForChild("Knit", 10):WaitForChild("Services", 10) end)
+    
+    local success, Services = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages",10):WaitForChild("Knit",10):WaitForChild("Services",10) end)
     if not success or not Services then self:ShowMessage("FAILURE: Could not find Services folder."); task.wait(3); self:Hide(); return end
     
-    local statObject = leaderstats:WaitForChild(profile.StatName); local baseline = statObject.Value
-    local foundRemote = nil
+    local foundRemote, failureReason = nil, "Could not identify " .. profile.Name .. " Remote."
 
-    for _, service in ipairs(Services:GetChildren()) do
+    local servicesToScan = Services:GetChildren()
+    local attempts = 0
+
+    for _, service in ipairs(servicesToScan) do
         local remoteFolder = service:FindFirstChild(profile.RemoteType)
-        if remoteFolder then for _, remote in ipairs(remoteFolder:GetChildren()) do
-            if profile.KnownName and remote.Name ~= profile.KnownName then continue end
-            pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs))
-            task.wait(0.2)
-            if statObject.Value > baseline then foundRemote = remote; break else baseline = statObject.Value end
-        end end
-        if foundRemote then break end
+        if remoteFolder then
+            for _, remote in ipairs(remoteFolder:GetChildren()) do
+                if profile.KnownName and remote.Name ~= profile.KnownName then continue end
+                
+                attempts = attempts + 1
+                
+                -- Execute different scanning strategies based on the profile
+                if profile.CacheKey == "ClickRemote" then -- Signal Amplification
+                    local baseline = leaderstats:WaitForChild(profile.StatName).Value
+                    for i = 1, 5 do pcall(remote.FireServer, remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                    task.wait(0.2)
+                    if leaderstats:WaitForChild(profile.StatName).Value > baseline then foundRemote = remote end
+
+                elseif profile.CacheKey == "RebirthRemote" then -- Dual-Signal Detection
+                    if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
+                    local clicksStat = leaderstats:WaitForChild("\240\159\145\143 Clicks")
+                    local rebirthsStat = leaderstats:WaitForChild(profile.StatName)
+                    local clicksBaseline = clicksStat.Value
+                    local rebirthsBaseline = rebirthsStat.Value
+                    
+                    pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
+                    task.wait(0.25)
+                    
+                    if clicksStat.Value == 0 and clicksBaseline > 0 then -- Primary Golden Signal
+                        foundRemote = remote
+                    elseif rebirthsStat.Value > rebirthsBaseline then -- Secondary Failsafe
+                        foundRemote = remote
+                    end
+
+                else -- Standard Scan (for Auto Hatch)
+                    local statObject = leaderstats:WaitForChild(profile.StatName)
+                    local baseline = statObject.Value
+                    pcall(remote.FireServer, remote, unpack(profile.TestArgs))
+                    task.wait(0.2)
+                    if statObject.Value > baseline then foundRemote = remote else baseline = statObject.Value end
+                end
+
+                if foundRemote then break end
+            end
+        end
+        if foundRemote or attempts > 40 then break end
     end
 
     if foundRemote then
@@ -81,7 +99,7 @@ function Finder:ScanAndStore(profile)
         task.wait(1.5); self:Hide()
         profile.Callback(foundRemote)
     else
-        self:ShowMessage("FAILURE: Could not identify " .. profile.Name .. " Remote."); task.wait(3); self:Hide()
+        self:ShowMessage("FAILURE: " .. failureReason); task.wait(3); self:Hide()
         local flag = Rayfield.Flags[profile.Flag]; if flag then flag:Set(false) end
     end
 end
@@ -126,11 +144,19 @@ PetTab:CreateToggle({Name="Auto Hatch Selected Egg (x3)",CurrentValue=false,Flag
 end})
 
 --============ UPGRADES TAB, PROFILE & SETTINGS ============--
--- This section was left minimal as per the last request to focus on the Hunter module
+-- These features remain on the stable, manual index system for this test.
 UpgradesTab:CreateSection("Auto Purchase")
+local UPGRADE_SERVICE_INDEX = 15; local UPGRADE_RF_NAME = "jag känner en bot, hon heter anna, anna heter hon"
 local function getUpgradeNames()local n={};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("UpgradesFrame",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5):WaitForChild("Upgrades",5);if h then for _,i in pairs(h:GetChildren())do if i:IsA("Frame")then table.insert(n,i.Name)end end end;return n end
 local allUpgradeNames=getUpgradeNames();if #allUpgradeNames==0 then table.insert(allUpgradeNames,"No Upgrades Found")end
 UpgradesTab:CreateDropdown({Name="Select Upgrades",Options=allUpgradeNames,MultipleOptions=true,Flag="UpgradeSelectionDropdown"})
+_G.isAutoUpgrading=false; UpgradesTab:CreateToggle({Name="Auto Upgrade",Flag="AutoUpgradeToggle",Callback=function(v)_G.isAutoUpgrading=v;if v then task.spawn(function() local s,rf=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[UPGRADE_SERVICE_INDEX].RF[UPGRADE_RF_NAME]end);if not s then return end; while _G.isAutoUpgrading do for _,n in ipairs(Rayfield.Flags.UpgradeSelectionDropdown.CurrentOption)do pcall(rf.InvokeServer,rf,string.lower(n:sub(1,1))..n:sub(2))task.wait(0.2);if not _G.isAutoUpgrading then break end end;task.wait(0.5)end end)end end})
+
+UpgradesTab:CreateSection("Upgrade Farm")
+local FARM_SERVICE_INDEX,FARM_RF_INDEX=22,3
+local function getFarmNames()local n={"farmer"};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("FarmingMachineFrame",5):WaitForChild("Displays",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5);if h then for _,i in pairs(h:GetChildren())do if i.Name~="UIListLayout" and i.Name~="YourFarmText" then table.insert(n,i.Name)end end end;table.sort(n);return n end
+local allFarmNames=getFarmNames();UpgradesTab:CreateDropdown({Name="Select Farm Item(s)",Options=allFarmNames,MultipleOptions=true,Flag="FarmItemDropdown"})
+_G.isAutoFarming=false; UpgradesTab:CreateToggle({Name="Auto Farm",Flag="AutoFarmToggle",Callback=function(v)_G.isAutoFarming=v;if v then task.spawn(function() local s,rf=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[FARM_SERVICE_INDEX].RF:GetChildren()[FARM_RF_INDEX]end);if not s then return end; while _G.isAutoFarming do for _,n in ipairs(Rayfield.Flags.FarmItemDropdown.CurrentOption)do pcall(rf.InvokeServer,rf,string.lower(n:sub(1,1))..n:sub(2))task.wait(0.5);if not _G.isAutoFarming then break end end;task.wait(0.5)end end)end end})
 
 ProfileTab:CreateSection("Live Player Statistics")
 local PlaytimeButton=ProfileTab:CreateButton({Name="Playtime: Loading...",Flag="PlaytimeStat",Callback=function()end})
