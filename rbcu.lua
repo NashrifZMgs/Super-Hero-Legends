@@ -112,7 +112,7 @@ PetTab:CreateToggle({
                 local selectedOption = EggDropdown.CurrentOption[1]
                 if selectedOption and selectedOption ~= "None" then
                     local eggName = selectedOption:match("^(%S+)")
-                    pcall(function() EggService.openEgg:Fire(eggName, 1) end)
+                    pcall(function() EggService.openEggs:Fire(eggName, 1) end)
                 end
                 task.wait(1) 
             end
