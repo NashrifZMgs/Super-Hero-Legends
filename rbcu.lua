@@ -21,7 +21,7 @@ local ClicksTab, PetTab, UpgradesTab, MapTab, MiscTab, ProfileTab, SettingsTab =
 
 --============ CLICKS TAB ============--
 local ClicksSection = ClicksTab:CreateSection("Farming")
-local CLICK_SERVICE_INDEX, CLICK_EVENT_INDEX = 19, 3
+local CLICK_SERVICE_INDEX, CLICK_EVENT_INDEX = 23, 3
 _G.isAutoClicking = false
 ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "AutoClickToggle", Callback = function(v)
     _G.isAutoClicking = v; if v then task.spawn(function()
