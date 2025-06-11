@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 38 - Dual-Signal Hunter)
-    Master's Request: Implement and test the advanced behavioral analysis scanner.
-    Functionality: Auto Click (Signal Amplification), Auto Rebirth (Dual-Signal Detection), Auto Hatch (Standard Scan).
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, Focused Intelligence.
+    Nexus-Lua Script (Version 40 - Amplified Hunter)
+    Master's Request: Apply Signal Amplification to the Auto Hatch scanner.
+    Functionality: Auto Hatch scanner is now more reliable; Auto Rebirth scanner retains the superior "Golden Signal" method.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Amplified Signal Detection.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -44,53 +44,34 @@ function Finder:ScanAndStore(profile)
     if not success or not Services then self:ShowMessage("FAILURE: Could not find Services folder."); task.wait(3); self:Hide(); return end
     
     local foundRemote, failureReason = nil, "Could not identify " .. profile.Name .. " Remote."
-
-    local servicesToScan = Services:GetChildren()
     local attempts = 0
 
-    for _, service in ipairs(servicesToScan) do
+    for _, service in ipairs(Services:GetChildren()) do
         local remoteFolder = service:FindFirstChild(profile.RemoteType)
-        if remoteFolder then
-            for _, remote in ipairs(remoteFolder:GetChildren()) do
-                if profile.KnownName and remote.Name ~= profile.KnownName then continue end
-                
-                attempts = attempts + 1
-                
-                -- Execute different scanning strategies based on the profile
-                if profile.CacheKey == "ClickRemote" then -- Signal Amplification
-                    local baseline = leaderstats:WaitForChild(profile.StatName).Value
-                    for i = 1, 5 do pcall(remote.FireServer, remote, unpack(profile.TestArgs)); task.wait(0.05) end
-                    task.wait(0.2)
-                    if leaderstats:WaitForChild(profile.StatName).Value > baseline then foundRemote = remote end
-
-                elseif profile.CacheKey == "RebirthRemote" then -- Dual-Signal Detection
-                    if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
-                    local clicksStat = leaderstats:WaitForChild("\240\159\145\143 Clicks")
-                    local rebirthsStat = leaderstats:WaitForChild(profile.StatName)
-                    local clicksBaseline = clicksStat.Value
-                    local rebirthsBaseline = rebirthsStat.Value
-                    
-                    pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
-                    task.wait(0.25)
-                    
-                    if clicksStat.Value == 0 and clicksBaseline > 0 then -- Primary Golden Signal
-                        foundRemote = remote
-                    elseif rebirthsStat.Value > rebirthsBaseline then -- Secondary Failsafe
-                        foundRemote = remote
-                    end
-
-                else -- Standard Scan (for Auto Hatch)
-                    local statObject = leaderstats:WaitForChild(profile.StatName)
-                    local baseline = statObject.Value
-                    pcall(remote.FireServer, remote, unpack(profile.TestArgs))
-                    task.wait(0.2)
-                    if statObject.Value > baseline then foundRemote = remote else baseline = statObject.Value end
-                end
-
-                if foundRemote then break end
+        if remoteFolder then for _, remote in ipairs(remoteFolder:GetChildren()) do
+            if profile.KnownName and remote.Name ~= profile.KnownName then continue end
+            attempts = attempts + 1
+            
+            local statObject = leaderstats:FindFirstChild(profile.StatName)
+            if not statObject then failureReason = "Leaderstat '"..profile.StatName.."' not found."; break end
+            
+            if profile.CacheKey == "RebirthRemote" then
+                if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
+                local clicksBaseline = leaderstats["\240\159\145\143 Clicks"].Value
+                local rebirthsBaseline = statObject.Value
+                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.25)
+                if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then foundRemote = remote
+                elseif statObject.Value > rebirthsBaseline then foundRemote = remote end
+            else -- Logic for Click and Hatch
+                local baseline = statObject.Value
+                for i = 1, 5 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                task.wait(0.2)
+                if statObject.Value > baseline then foundRemote = remote end
             end
-        end
-        if foundRemote or attempts > 40 then break end
+            
+            if foundRemote then break end
+        end end
+        if foundRemote or (profile.CacheKey == "RebirthRemote" and attempts > 40) then break end
     end
 
     if foundRemote then
@@ -130,7 +111,7 @@ ClicksTab:CreateToggle({Name="Auto Rebirth",CurrentValue=false,Flag="AutoRebirth
     })
 end})
 
---============ PET TAB ============--
+--============ PET TAB (UPGRADED SCANNER) ============--
 PetTab:CreateSection("Auto Hatch")
 local function getEggNames()local n={};local m=workspace.Game.Maps;for _,i in pairs(m:GetChildren())do if i:IsA("Folder")and i:FindFirstChild("Eggs")then for _,e in pairs(i.Eggs:GetChildren())do if e:IsA("Model")then table.insert(n,e.Name)end end end end;table.sort(n);return n end
 local allEggNames=getEggNames();if #allEggNames==0 then table.insert(allEggNames,"No Eggs Found")end
@@ -138,25 +119,23 @@ local EggDropdown=PetTab:CreateDropdown({Name="Select Egg",Options=allEggNames,C
 _G.isAutoHatching=false;local AutoHatchStatusButton=PetTab:CreateButton({Name="Status: Idle",Callback=function()end})
 PetTab:CreateToggle({Name="Auto Hatch Selected Egg (x3)",CurrentValue=false,Flag="AutoHatchToggle",Callback=function(v)
     _G.isAutoHatching=v; if not v then AutoHatchStatusButton:Set("Status: Idle"); return end
+    -- The scanner now uses signal amplification for hatching as well.
     Finder:ScanAndStore({ Name = "Auto Hatch", CacheKey = "HatchRemote", Flag = "AutoHatchToggle", StatName = "\240\159\165\154 Eggs", RemoteType = "RE", FireMethod = "FireServer", TestArgs = {"Basic", 1},
         Callback = function(remote) while _G.isAutoHatching do local sel=EggDropdown.CurrentOption[1];if sel and sel~="No Eggs Found"then AutoHatchStatusButton:Set("Status: Hatching "..sel);pcall(remote.FireServer,remote,sel,2)task.wait(0.05)else AutoHatchStatusButton:Set("Status: No egg selected");_G.isAutoHatching=false;Rayfield.Flags.AutoHatchToggle:Set(false);break end end;AutoHatchStatusButton:Set("Status: Idle") end
     })
 end})
 
---============ UPGRADES TAB, PROFILE & SETTINGS ============--
--- These features remain on the stable, manual index system for this test.
-UpgradesTab:CreateSection("Auto Purchase")
-local UPGRADE_SERVICE_INDEX = 15; local UPGRADE_RF_NAME = "jag känner en bot, hon heter anna, anna heter hon"
+--============ UPGRADES, PROFILE, SETTINGS & LIVE DATA ============--
+UpgradesTab:CreateSection("Auto Purchase"); local UPGRADE_SERVICE_INDEX=15;local UPGRADE_RF_NAME="jag känner en bot, hon heter anna, anna heter hon"
 local function getUpgradeNames()local n={};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("UpgradesFrame",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5):WaitForChild("Upgrades",5);if h then for _,i in pairs(h:GetChildren())do if i:IsA("Frame")then table.insert(n,i.Name)end end end;return n end
 local allUpgradeNames=getUpgradeNames();if #allUpgradeNames==0 then table.insert(allUpgradeNames,"No Upgrades Found")end
 UpgradesTab:CreateDropdown({Name="Select Upgrades",Options=allUpgradeNames,MultipleOptions=true,Flag="UpgradeSelectionDropdown"})
-_G.isAutoUpgrading=false; UpgradesTab:CreateToggle({Name="Auto Upgrade",Flag="AutoUpgradeToggle",Callback=function(v)_G.isAutoUpgrading=v;if v then task.spawn(function() local s,rf=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[UPGRADE_SERVICE_INDEX].RF[UPGRADE_RF_NAME]end);if not s then return end; while _G.isAutoUpgrading do for _,n in ipairs(Rayfield.Flags.UpgradeSelectionDropdown.CurrentOption)do pcall(rf.InvokeServer,rf,string.lower(n:sub(1,1))..n:sub(2))task.wait(0.2);if not _G.isAutoUpgrading then break end end;task.wait(0.5)end end)end end})
+_G.isAutoUpgrading=false;UpgradesTab:CreateToggle({Name="Auto Upgrade",Flag="AutoUpgradeToggle",Callback=function(v)_G.isAutoUpgrading=v;if v then task.spawn(function()local s,rf=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[UPGRADE_SERVICE_INDEX].RF[UPGRADE_RF_NAME]end);if not s then return end;while _G.isAutoUpgrading do for _,n in ipairs(Rayfield.Flags.UpgradeSelectionDropdown.CurrentOption)do pcall(rf.InvokeServer,rf,string.lower(n:sub(1,1))..n:sub(2))task.wait(0.2);if not _G.isAutoUpgrading then break end end;task.wait(0.5)end end)end end})
 
-UpgradesTab:CreateSection("Upgrade Farm")
-local FARM_SERVICE_INDEX,FARM_RF_INDEX=22,3
-local function getFarmNames()local n={"farmer"};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("FarmingMachineFrame",5):WaitForChild("Displays",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5);if h then for _,i in pairs(h:GetChildren())do if i.Name~="UIListLayout" and i.Name~="YourFarmText" then table.insert(n,i.Name)end end end;table.sort(n);return n end
+UpgradesTab:CreateSection("Upgrade Farm"); local FARM_SERVICE_INDEX,FARM_RF_INDEX=22,3
+local function getFarmNames()local n={"farmer"};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("FarmingMachineFrame",5):WaitForChild("Displays",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5);if h then for _,i in pairs(h:GetChildren())do if i.Name~="UIListLayout"and i.Name~="YourFarmText"then table.insert(n,i.Name)end end end;table.sort(n);return n end
 local allFarmNames=getFarmNames();UpgradesTab:CreateDropdown({Name="Select Farm Item(s)",Options=allFarmNames,MultipleOptions=true,Flag="FarmItemDropdown"})
-_G.isAutoFarming=false; UpgradesTab:CreateToggle({Name="Auto Farm",Flag="AutoFarmToggle",Callback=function(v)_G.isAutoFarming=v;if v then task.spawn(function() local s,rf=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[FARM_SERVICE_INDEX].RF:GetChildren()[FARM_RF_INDEX]end);if not s then return end; while _G.isAutoFarming do for _,n in ipairs(Rayfield.Flags.FarmItemDropdown.CurrentOption)do pcall(rf.InvokeServer,rf,string.lower(n:sub(1,1))..n:sub(2))task.wait(0.5);if not _G.isAutoFarming then break end end;task.wait(0.5)end end)end end})
+_G.isAutoFarming=false;UpgradesTab:CreateToggle({Name="Auto Farm",Flag="AutoFarmToggle",Callback=function(v)_G.isAutoFarming=v;if v then task.spawn(function()local s,rf=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[FARM_SERVICE_INDEX].RF:GetChildren()[FARM_RF_INDEX]end);if not s then return end;while _G.isAutoFarming do for _,n in ipairs(Rayfield.Flags.FarmItemDropdown.CurrentOption)do pcall(rf.InvokeServer,rf,string.lower(n:sub(1,1))..n:sub(2))task.wait(0.5);if not _G.isAutoFarming then break end end;task.wait(0.5)end end)end end})
 
 ProfileTab:CreateSection("Live Player Statistics")
 local PlaytimeButton=ProfileTab:CreateButton({Name="Playtime: Loading...",Flag="PlaytimeStat",Callback=function()end})
@@ -167,14 +146,7 @@ SettingsTab:CreateSection("Interface Control")
 SettingsTab:CreateButton({Name="Destroy UI",Callback=function()Rayfield:Destroy()end})
 SettingsTab:CreateButton({Name="Restart Script",Callback=function()Rayfield:Notify({Title="Restarting",Content="Script will restart in 3 seconds.",Duration=3,Image="loader"});Rayfield:Destroy();task.wait(3);pcall(function()loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))()end)end})
 
---============ LIVE DATA UPDATER ============--
 spawn(function()
     local startTime=tick()
-    while task.wait(1) do
-        if not pcall(function() Rayfield:IsVisible() end) then break end
-        local elap=tick()-startTime;PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d",math.floor(elap/3600),math.floor((elap%3600)/60),math.floor(elap%60)))
-        local r=leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths");RebirthsButton:Set(r and"Rebirths: "..tostring(r.Value)or"Rebirths: N/A")
-        local c=leaderstats:FindFirstChild("\240\159\145\143 Clicks");ClicksButton:Set(c and"Clicks: "..tostring(c.Value)or"Clicks: N/A")
-        local e=leaderstats:FindFirstChild("\240\159\165\154 Eggs");EggsButton:Set(e and"Eggs: "..tostring(e.Value)or"Eggs: N/A")
-    end
+    while task.wait(1) do if not pcall(function()Rayfield:IsVisible()end)then break end;local elap=tick()-startTime;PlaytimeButton:Set(string.format("Playtime: %02d:%02d:%02d",math.floor(elap/3600),math.floor((elap%3600)/60),math.floor(elap%60)));local r=leaderstats:FindFirstChild("\226\153\187\239\184\143 Rebirths");RebirthsButton:Set(r and"Rebirths: "..tostring(r.Value)or"Rebirths: N/A");local c=leaderstats:FindFirstChild("\240\159\145\143 Clicks");ClicksButton:Set(c and"Clicks: "..tostring(c.Value)or"Clicks: N/A");local e=leaderstats:FindFirstChild("\240\159\165\154 Eggs");EggsButton:Set(e and"Eggs: "..tostring(e.Value)or"Eggs: N/A")end
 end)
