@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 45 - Rapid Scan Engine)
-    Master's Request: Revert signal amplification to 5x for a faster scanning process.
-    Functionality: All hunter features now use a faster 5x signal amplification.
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, Rapid Scanning.
+    Nexus-Lua Script (Version 42 - Active Polling Hunter)
+    Master's Request: Fix rebirth detection by actively polling for the result, making it immune to latency.
+    Functionality: The rebirth scanner is now equipped with a patient, active polling mechanism.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, Latency-Resistant Detection.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -25,20 +25,6 @@ local Finder = {}
 local Player = game:GetService("Players").LocalPlayer
 local leaderstats = Player:WaitForChild("leaderstats")
 
--- Utility to convert abbreviated numbers (e.g., "1.5B") into actual numbers.
-local function ConvertToNumber(str)
-    if typeof(str) == "number" then return str end
-    if typeof(str) ~= "string" then return 0 end
-    local suffixes = {K=3,M=6,B=9,T=12,Qa=15,Qi=18,Sx=21,Sp=24,Oc=27,No=30,De=33}
-    local num, suf = str:match("([%d,%.]+)(%a*)")
-    if not num then return 0 end
-    num = tonumber(num:gsub(",",""))
-    if not num then return 0 end
-    local mult = suffixes[suf]
-    if mult then num = num * (10^mult) end
-    return num
-end
-
 local InputBlocker = Instance.new("ScreenGui", game.CoreGui)
 InputBlocker.Name = "InputBlocker_NexusLua"; InputBlocker.Enabled = false; InputBlocker.ZIndexBehavior = Enum.ZIndexBehavior.Global
 local BlockerButton = Instance.new("TextButton", InputBlocker)
@@ -49,49 +35,51 @@ StatusLabel.Size = UDim2.new(0.8,0,0.2,0); StatusLabel.Position = UDim2.new(0.1,
 function Finder:ShowMessage(message) StatusLabel.Text = message; InputBlocker.Enabled = true end
 function Finder:Hide() InputBlocker.Enabled = false end
 
-function Finder:PerformScan(profile)
-    local success, Services = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages",10):WaitForChild("Knit",10):WaitForChild("Services",10) end)
-    if not success or not Services then return nil, "Could not find Services folder." end
+function Finder:ScanAndStore(profile)
+    if _G.FoundRemotes[profile.CacheKey] then profile.Callback(_G.FoundRemotes[profile.CacheKey]); return end
+    self:ShowMessage("SCANNING: Acquiring " .. profile.Name .. " Remote...\nPlease wait and do not interact.")
+    task.wait()
     
+    local success, Services = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages",10):WaitForChild("Knit",10):WaitForChild("Services",10) end)
+    if not success or not Services then self:ShowMessage("FAILURE: Could not find Services folder."); task.wait(3); self:Hide(); return end
+    
+    local foundRemote, failureReason = nil, "Could not identify " .. profile.Name .. " Remote."
     local attempts = 0
+
     for _, service in ipairs(Services:GetChildren()) do
         local remoteFolder = service:FindFirstChild(profile.RemoteType)
         if remoteFolder then for _, remote in ipairs(remoteFolder:GetChildren()) do
             if profile.KnownName and remote.Name ~= profile.KnownName then continue end
             attempts = attempts + 1
             
-            local statObject = leaderstats:FindFirstChild(profile.StatName)
-            if not statObject then return nil, "Leaderstat '"..profile.StatName.."' not found." end
-
             if profile.CacheKey == "RebirthRemote" then
-                if attempts > 30 then return nil, "Scan limit of 30 attempts reached." end
-                local clicksBaseline = ConvertToNumber(leaderstats["\240\159\145\143 Clicks"].Value)
-                -- REVERTED: Rebirth scan now uses 5x amplification for faster scanning.
-                for i = 1, 5 do pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.05) end
-                task.wait(0.2)
+                if attempts > 40 then failureReason = "Scan limit of 40 attempts reached."; break end
+                local clicksBaseline = leaderstats["\240\159\145\143 Clicks"].Value
+                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
                 
-                if ConvertToNumber(leaderstats["\240\159\145\143 Clicks"].Value) == 0 and clicksBaseline > 0 then
-                    return remote
+                -- UPGRADED: Actively poll for the result for up to 1 second.
+                for i = 1, 50 do -- Poll for ~1 second (50 * ~0.02s wait)
+                    task.wait()
+                    if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then
+                        foundRemote = remote
+                        break
+                    end
                 end
-            else
-                local baseline = ConvertToNumber(statObject.Value)
-                -- REVERTED: Burst-fire reverted to 5x for faster scanning.
-                for i = 1, 5 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                
+            else -- Logic for Click and Hatch
+                local statObject = leaderstats:FindFirstChild(profile.StatName)
+                if not statObject then failureReason = "Leaderstat '"..profile.StatName.."' not found."; break end
+                local baseline = statObject.Value
+                for i = 1, 10 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
-                if ConvertToNumber(statObject.Value) > baseline then
-                    return remote
-                end
+                if statObject.Value > baseline then foundRemote = remote end
             end
+            
+            if foundRemote then break end
         end end
+        if foundRemote or (profile.CacheKey == "RebirthRemote" and attempts > 40) then break end
     end
-    return nil, "Could not identify " .. profile.Name .. " Remote."
-end
 
-function Finder:ScanAndStore(profile)
-    if _G.FoundRemotes[profile.CacheKey] then profile.Callback(_G.FoundRemotes[profile.CacheKey]); return end
-    self:ShowMessage("SCANNING: Acquiring " .. profile.Name .. " Remote...\nPlease wait and do not interact.")
-    task.wait()
-    local foundRemote, failureReason = self:PerformScan(profile)
     if foundRemote then
         _G.FoundRemotes[profile.CacheKey] = foundRemote
         self:ShowMessage("SUCCESS: " .. profile.Name .. " Remote Found! Resuming...")
