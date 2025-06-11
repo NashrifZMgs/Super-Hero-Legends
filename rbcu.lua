@@ -86,7 +86,7 @@ PetTab:CreateSection("Egg Hatching")
 local eggOptions = {}
 for name, data in pairs(EggsModule) do
     if not data.requiredMap or (DataController.data and DataController.data.maps[data.requiredMap]) then
-        table.insert(eggOptions, string.format("%s Egg | %s Gems", name, formatSuffix(data.cost)))
+        table.insert(eggOptions, string.format("%s Egg | %s Clicks", name, formatSuffix(data.cost)))
     end
 end
 
@@ -112,7 +112,7 @@ PetTab:CreateToggle({
                 local selectedOption = EggDropdown.CurrentOption[1]
                 if selectedOption and selectedOption ~= "None" then
                     local eggName = selectedOption:match("^(%S+)")
-                    pcall(function() EggService.openEggs:Fire(eggName, 1) end)
+                    pcall(function() EggService.openEgg:Fire(eggName, 2) end)
                 end
                 task.wait(1) 
             end
