@@ -1,8 +1,8 @@
 --[[
-    Nexus-Lua Script (Version 43 - Logic Control Hunter)
-    Master's Request: Fix the scanner's control flow to correctly stop upon successful detection.
-    Functionality: The scanner now uses a robust early-return method, ensuring it halts instantly when a remote is found.
-    Optimization: Advanced Heuristics, Failsafe Input Blocking, Robust Control Flow.
+    Nexus-Lua Script (Version 44 - High-Precision Engine)
+    Master's Request: Implement number conversion for large stats and refine scanning logic.
+    Functionality: All hunter features now use a number converter and 10x signal amplification for maximum precision.
+    Optimization: Advanced Heuristics, Failsafe Input Blocking, High-Precision Detection.
 ]]
 
 -- A more stable way to load the Rayfield library
@@ -25,6 +25,18 @@ local Finder = {}
 local Player = game:GetService("Players").LocalPlayer
 local leaderstats = Player:WaitForChild("leaderstats")
 
+-- NEW: Utility to convert abbreviated numbers (e.g., "1.5B") into actual numbers.
+local function ConvertToNumber(str)
+    local suffixes = {K=3,M=6,B=9,T=12,Qa=15,Qi=18,Sx=21,Sp=24,Oc=27,No=30,De=33}
+    local num, suf = str:match("([%d,%.]+)(%a*)")
+    if not num then return 0 end
+    num = tonumber(num:gsub(",",""))
+    if not num then return 0 end
+    local mult = suffixes[suf]
+    if mult then num = num * (10^mult) end
+    return num
+end
+
 local InputBlocker = Instance.new("ScreenGui", game.CoreGui)
 InputBlocker.Name = "InputBlocker_NexusLua"; InputBlocker.Enabled = false; InputBlocker.ZIndexBehavior = Enum.ZIndexBehavior.Global
 local BlockerButton = Instance.new("TextButton", InputBlocker)
@@ -35,7 +47,6 @@ StatusLabel.Size = UDim2.new(0.8,0,0.2,0); StatusLabel.Position = UDim2.new(0.1,
 function Finder:ShowMessage(message) StatusLabel.Text = message; InputBlocker.Enabled = true end
 function Finder:Hide() InputBlocker.Enabled = false end
 
--- This is the core scanning logic, now refactored to use an early return.
 function Finder:PerformScan(profile)
     local success, Services = pcall(function() return game:GetService("ReplicatedStorage"):WaitForChild("Packages",10):WaitForChild("Knit",10):WaitForChild("Services",10) end)
     if not success or not Services then return nil, "Could not find Services folder." end
@@ -47,39 +58,40 @@ function Finder:PerformScan(profile)
             if profile.KnownName and remote.Name ~= profile.KnownName then continue end
             attempts = attempts + 1
             
+            local statObject = leaderstats:FindFirstChild(profile.StatName)
+            if not statObject then return nil, "Leaderstat '"..profile.StatName.."' not found." end
+
             if profile.CacheKey == "RebirthRemote" then
-                if attempts > 40 then return nil, "Scan limit of 40 attempts reached." end
-                local clicksBaseline = leaderstats["\240\159\145\143 Clicks"].Value
-                pcall(remote.InvokeServer, remote, unpack(profile.TestArgs))
+                if attempts > 30 then return nil, "Scan limit of 30 attempts reached." end
+                local clicksBaseline = ConvertToNumber(leaderstats["\240\159\145\143 Clicks"].Value)
+                local rebirthsBaseline = ConvertToNumber(statObject.Value)
+
+                for i = 1, 10 do pcall(remote.InvokeServer, remote, unpack(profile.TestArgs)); task.wait(0.05) end
+                task.wait(0.2)
                 
-                for i = 1, 50 do
-                    task.wait()
-                    if leaderstats["\240\159\145\143 Clicks"].Value == 0 and clicksBaseline > 0 then
-                        return remote -- SUCCESS: Return the found remote immediately.
-                    end
+                if ConvertToNumber(leaderstats["\240\159\145\143 Clicks"].Value) == 0 and clicksBaseline > 0 then
+                    return remote
+                elseif ConvertToNumber(statObject.Value) > rebirthsBaseline then
+                    return remote
                 end
             else
-                local statObject = leaderstats:FindFirstChild(profile.StatName)
-                if not statObject then return nil, "Leaderstat '"..profile.StatName.."' not found." end
-                local baseline = statObject.Value
+                local baseline = ConvertToNumber(statObject.Value)
                 for i = 1, 10 do pcall(remote[profile.FireMethod], remote, unpack(profile.TestArgs)); task.wait(0.05) end
                 task.wait(0.2)
-                if statObject.Value > baseline then
-                    return remote -- SUCCESS: Return the found remote immediately.
+                if ConvertToNumber(statObject.Value) > baseline then
+                    return remote
                 end
             end
         end end
     end
-    return nil, "Could not identify " .. profile.Name .. " Remote." -- FAILURE: Return nil if loop finishes.
+    return nil, "Could not identify " .. profile.Name .. " Remote."
 end
 
 function Finder:ScanAndStore(profile)
     if _G.FoundRemotes[profile.CacheKey] then profile.Callback(_G.FoundRemotes[profile.CacheKey]); return end
     self:ShowMessage("SCANNING: Acquiring " .. profile.Name .. " Remote...\nPlease wait and do not interact.")
     task.wait()
-    
     local foundRemote, failureReason = self:PerformScan(profile)
-
     if foundRemote then
         _G.FoundRemotes[profile.CacheKey] = foundRemote
         self:ShowMessage("SUCCESS: " .. profile.Name .. " Remote Found! Resuming...")
@@ -112,7 +124,7 @@ local RebirthDropdown=ClicksTab:CreateDropdown({Name="Select Rebirth Tier",Optio
 _G.isAutoRebirthing=false
 ClicksTab:CreateToggle({Name="Auto Rebirth",CurrentValue=false,Flag="AutoRebirthToggle",Callback=function(v)
     _G.isAutoRebirthing=v; if not v then return end
-    Finder:ScanAndStore({ Name = "Auto Rebirth", CacheKey = "RebirthRemote", Flag = "AutoRebirthToggle", RemoteType = "RF", KnownName = "jag känner en bot, hon heter anna, anna heter hon", TestArgs = {1},
+    Finder:ScanAndStore({ Name = "Auto Rebirth", CacheKey = "RebirthRemote", Flag = "AutoRebirthToggle", StatName = "\226\153\187\239\184\143 Rebirths", RemoteType = "RF", FireMethod = "InvokeServer", KnownName = "jag känner en bot, hon heter anna, anna heter hon", TestArgs = {1},
         Callback = function(remote) while _G.isAutoRebirthing do local id=table.find(rebirthOpts,RebirthDropdown.CurrentOption[1]);if id then pcall(remote.InvokeServer,remote,id)task.wait(0.5)end end end
     })
 end})
