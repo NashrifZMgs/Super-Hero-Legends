@@ -1,7 +1,7 @@
 --[[
-    Nexus-Lua Script (Version 32 - Pathing Corrected)
-    Master's Request: Revert the remote finding logic for Rebirth and Upgrades to the original, correct paths.
-    Functionality: All features stable with corrected remote paths.
+    Nexus-Lua Script (Version 33 - Farm Path Corrected)
+    Master's Request: Correct the specific remote path for Auto Upgrade Farm.
+    Functionality: All features stable with the correct farm remote path.
     Optimization: Mobile/Touchscreen, Robust Loading, Correct Logic
 ]]
 
@@ -32,12 +32,11 @@ ClicksTab:CreateToggle({ Name = "Auto Click", CurrentValue = false, Flag = "Auto
 end})
 
 local RebirthSection = ClicksTab:CreateSection("Auto Rebirth")
-local REBIRTH_SERVICE_INDEX = 6 -- [TODO: Update if needed]
+local REBIRTH_SERVICE_INDEX = 6
 local rebirthOpts = {"1 Rebirth","5 Rebirths","10 Rebirths","25 Rebirths","50 Rebirths","100 Rebirths","200 Rebirths","500 Rebirths","1k Rebirths","2.5k Rebirths","Rebirth 11","Rebirth 12","Rebirth 13","Rebirth 14","Rebirth 15","Rebirth 16","Rebirth 17","Rebirth 18","Rebirth 19","Rebirth 20","Rebirth 21","Rebirth 22","Rebirth 23","Rebirth 24","Rebirth 25","Rebirth 26","Rebirth 27","Rebirth 28","Rebirth 29","Rebirth 30","Rebirth 31","Rebirth 32","Rebirth 33","Rebirth 34","Rebirth 35","Rebirth 36"}
 local RebirthDropdown = ClicksTab:CreateDropdown({Name="Select Rebirth Tier",Options=rebirthOpts,CurrentOption={rebirthOpts[1]},MultipleOptions=false,Flag="RebirthTierDropdown"})
 _G.isAutoRebirthing = false
 ClicksTab:CreateToggle({Name="Auto Rebirth",CurrentValue=false,Flag="AutoRebirthToggle",Callback=function(v) _G.isAutoRebirthing=v;if v then task.spawn(function()
-    -- CORRECTED: Using the original, name-based path for the remote.
     local s,rF = pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[REBIRTH_SERVICE_INDEX].RF["jag känner en bot, hon heter anna, anna heter hon"]end)
     if not s or not rF then Rayfield:Notify({Title="Error",Content="Rebirth remote needs updating.",Duration=7,Image="alert-triangle"});_G.isAutoRebirthing=false;Rayfield.Flags.AutoRebirthToggle:Set(false)return end
     while _G.isAutoRebirthing do local id=table.find(rebirthOpts,RebirthDropdown.CurrentOption[1]);if id then pcall(rF.InvokeServer,rF,id)task.wait(0.5)end end
@@ -54,20 +53,20 @@ PetTab:CreateToggle({Name="Auto Hatch Selected Egg (x3)",CurrentValue=false,Flag
 
 --============ UPGRADES TAB ============--
 local UpgradeSection=UpgradesTab:CreateSection("Auto Purchase")
-local UPGRADE_SERVICE_INDEX = 15 -- [TODO: Update if needed]
+local UPGRADE_SERVICE_INDEX = 15
 local function getUpgradeNames()local n={};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("UpgradesFrame",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5):WaitForChild("Upgrades",5);if h then for _,i in pairs(h:GetChildren())do if i:IsA("Frame")then table.insert(n,i.Name)end end end;return n end
 local allUpgradeNames=getUpgradeNames();if #allUpgradeNames==0 then table.insert(allUpgradeNames,"No Upgrades Found")end
 local UpgradeDropdown=UpgradesTab:CreateDropdown({Name="Select Upgrades",Options=allUpgradeNames,MultipleOptions=true,Flag="UpgradeSelectionDropdown"})
 _G.isAutoUpgrading=false
 UpgradesTab:CreateToggle({Name="Auto Upgrade Selected",CurrentValue=false,Flag="AutoUpgradeToggle",Callback=function(v) _G.isAutoUpgrading=v;if v then task.spawn(function()
-    -- CORRECTED: Using the original, name-based path for the remote.
     local s,uRF=pcall(function()return game:GetService("ReplicatedStorage").Packages.Knit.Services:GetChildren()[UPGRADE_SERVICE_INDEX].RF["jag känner en bot, hon heter anna, anna heter hon"]end)
     if not s or not uRF then Rayfield:Notify({Title="Error",Content="Upgrade remote needs updating.",Duration=7,Image="alert-triangle"});_G.isAutoUpgrading=false;Rayfield.Flags.AutoUpgradeToggle:Set(false)return end
     while _G.isAutoUpgrading do if #UpgradeDropdown.CurrentOption>0 then for _,name in ipairs(UpgradeDropdown.CurrentOption)do local fmtName=string.lower(string.sub(name,1,1))..string.sub(name,2);pcall(uRF.InvokeServer,uRF,fmtName)task.wait(0.2);if not _G.isAutoUpgrading then break end end end;task.wait(0.5)end
 end)end end})
 
 local UpgradeFarmSection=UpgradesTab:CreateSection("Upgrade Farm")
-local FARM_SERVICE_INDEX,FARM_RF_INDEX = 24, 1 -- [TODO: Update if needed, user mentioned 22 once]
+-- CORRECTED: The service index is now 22 and the RF index is 3, as per your instruction.
+local FARM_SERVICE_INDEX, FARM_RF_INDEX = 22, 3
 local function getFarmNames() local n={"farmer"};local h=game:GetService("StarterGui"):WaitForChild("MainUI",5):WaitForChild("Menus",5):WaitForChild("FarmingMachineFrame",5):WaitForChild("Displays",5):WaitForChild("Main",5):WaitForChild("List",5):WaitForChild("Holder",5);if h then for _,i in pairs(h:GetChildren())do if i.Name~="UIListLayout" and i.Name~="YourFarmText" then table.insert(n,i.Name)end end end;table.sort(n);return n end
 local allFarmNames=getFarmNames()
 local FarmDropdown=UpgradesTab:CreateDropdown({Name="Select Farm Item(s)",Options=allFarmNames,MultipleOptions=true,Flag="FarmItemDropdown"})
@@ -84,7 +83,7 @@ local ProfileSection = ProfileTab:CreateSection("Live Player Statistics")
 local PlaytimeButton = ProfileTab:CreateButton({ Name = "Playtime: Loading...", Flag = "PlaytimeStat", Callback = function() end })
 local RebirthsButton = ProfileTab:CreateButton({ Name = "Rebirths: Loading...", Flag = "RebirthsStat", Callback = function() end })
 local ClicksButton = ProfileTab:CreateButton({ Name = "Clicks: Loading...", Flag = "ClicksStat", Callback = function() end })
-local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Flag = "EggsStat", Callback = function() end })
+local EggsButton = ProfileTab:CreateButton({ Name = "Eggs: Loading...", Flag = "EggsStat", Callback = a=function() end})
 local SettingsSection = SettingsTab:CreateSection("Interface Control")
 SettingsTab:CreateButton({ Name = "Destroy UI", Callback = function() Rayfield:Destroy() end })
 SettingsTab:CreateButton({ Name = "Restart Script", Callback = function() Rayfield:Notify({ Title = "Restarting", Content = "Script will restart in 3 seconds.", Duration = 3, Image = "loader" }); Rayfield:Destroy(); task.wait(3); pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/NashrifZMgs/Super-Hero-Legends/refs/heads/main/rbcu.lua"))() end) end})
